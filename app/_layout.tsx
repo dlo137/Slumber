@@ -21,7 +21,7 @@ export default function RootLayout() {
   return (
     <StripeProvider publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack screenOptions={{ headerShown: false }}>
+        <Stack screenOptions={{ headerShown: false }} initialRouteName="onboarding">
           <Stack.Screen name="onboarding" />
           <Stack.Screen name="welcome" />
           <Stack.Screen name="login" />

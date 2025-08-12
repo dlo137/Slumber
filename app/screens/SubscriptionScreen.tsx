@@ -46,7 +46,8 @@ export default function SubscriptionScreen() {
     Alert.alert('Success', 'Your subscription is active!', [
       {
         text: 'Continue',
-        onPress: () => router.replace('/'),
+        // Redirect to the Sounds tab after payment
+        onPress: () => router.replace('/(tabs)/sounds'),
       },
     ]);
   };

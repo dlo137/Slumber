@@ -1,5 +1,11 @@
-import HomeScreen from './screens/HomeScreen';
 
-export default function Home() {
-  return <HomeScreen />;
+import { useRouter } from 'expo-router';
+import { useEffect } from 'react';
+
+export default function IndexRedirect() {
+  const router = useRouter();
+  useEffect(() => {
+    router.replace('/onboarding');
+  }, [router]);
+  return null;
 }
