@@ -46,18 +46,11 @@ const SignUpScreen = () => {
     setLoading(true);
 
     try {
-      // Log the user data being sent
-      console.log('Signing up with data:', {
-        email,
-        firstName,
-        lastName,
-        fullName: `${firstName} ${lastName}`
-      });
-
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
+          emailRedirectTo: undefined, // disables email confirmation
           data: {
             first_name: firstName,
             last_name: lastName,
@@ -72,24 +65,8 @@ const SignUpScreen = () => {
         return;
       }
 
-      const user = data?.user;
-
-      if (user) {
-        // User is automatically signed in and profile is created by the database trigger
-        router.push('/subscription');
-      } else {
-        // User needs to verify email first
-        Alert.alert(
-          'Success',
-          'Account created successfully! Please check your email to verify your account.',
-          [
-            {
-              text: 'OK',
-              onPress: () => router.push('/subscription'),
-            },
-          ]
-        );
-      }
+      // Always treat as signed in, route to subscription
+  router.replace('/subscription');
     } catch (error) {
       Alert.alert('Error', 'Something went wrong. Please try again.');
     } finally {

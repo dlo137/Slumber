@@ -1,5 +1,5 @@
-import OnboardingScreen from './screens/OnboardingScreen';
+import HomeScreen from './screens/HomeScreen';
 
 export default function Home() {
-  return <OnboardingScreen />;
+  return <HomeScreen />;
 }

@@ -44,8 +44,8 @@ const LoginScreen = () => {
       if (error) {
         Alert.alert('Login Failed', error.message);
       } else {
-        // Navigate to subscription screen after successful login
-  router.replace('/subscription');
+        // Always navigate to subscription screen after successful login
+        router.replace('/subscription');
       }
     } catch (error) {
       Alert.alert('Error', 'An unexpected error occurred. Please try again.');
