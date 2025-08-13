@@ -1,413 +1,510 @@
+import MixCard from '@/src/components/MixCard';
+import { SEED_MIXES } from '@/src/data/mixes';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-    Animated,
-    Dimensions,
-    Easing,
-    SafeAreaView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Animated, ImageBackground,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
-const { width, height } = Dimensions.get('window');
 
-// Initialize animations outside of component
-const wave1Animation = new Animated.Value(0);
-const wave2Animation = new Animated.Value(0);
-const wave3Animation = new Animated.Value(0);
-
-const OnboardingScreen = () => {
-  const [currentStep, setCurrentStep] = useState(0);
+export default function OnboardingScreen() {
   const router = useRouter();
+  const [step, setStep] = useState(0);
+  const [name, setName] = useState('');
+  const [days, setDays] = useState(['S','M','T','W','T','F','S']);
+  const [selectedDays, setSelectedDays] = useState(['S','M','T','W','T','F','S']);
+  const [time, setTime] = useState(new Date(0,0,0,23,0));
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const nameInputRef = useRef(null);
 
-  useEffect(() => {
-    // Start all animations together with different configurations
-    Animated.parallel([
-      // Wave 1: Up and down movement
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(wave1Animation, {
-            toValue: 1,
-            duration: 2000,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(wave1Animation, {
-            toValue: 0,
-            duration: 2000,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-        ])
-      ),
-      // Wave 2: Left and right movement
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(wave2Animation, {
-            toValue: 1,
-            duration: 3000,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(wave2Animation, {
-            toValue: 0,
-            duration: 3000,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-        ])
-      ),
-      // Wave 3: Diagonal movement
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(wave3Animation, {
-            toValue: 1,
-            duration: 4000,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(wave3Animation, {
-            toValue: 0,
-            duration: 4000,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-        ])
-      ),
-    ]).start();
-  }, []);
+  // Helper to format time as h:mm AM/PM
+  const formatTime = (date: Date) => {
+    let h = date.getHours();
+    const m = date.getMinutes().toString().padStart(2, '0');
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12;
+    if (h === 0) h = 12;
+    return `${h}:${m} ${ampm}`;
+  };
 
-  const onboardingSteps = [
-    {
-      title: 'Cut Through the Clutter. Understand More, Faster.',
-      subtitle: '',
-      icon: 'mic',
-      color: '#007AFF',
-    },
-    {
-      title: 'Instant notes from audio, video, & text.',
-      subtitle: 'Powered by AI',
-      icon: 'document-text',
-      color: '#34C759',
-      stats: [
-        { number: '5 min', label: 'average summary time' },
-        { number: '1-Click', label: 'instant insights' },
-      ],
-    },
-  ];
-
-  const currentStepData = onboardingSteps[currentStep];
-
-  const nextStep = () => {
-    if (currentStep < onboardingSteps.length - 1) {
-      setCurrentStep(currentStep + 1);
+  // Time picker logic
+  const openTimePicker = () => {
+    if (Platform.OS === 'android') {
+      // @ts-ignore
+      import('@react-native-community/datetimepicker').then(({ DateTimePickerAndroid }) => {
+        DateTimePickerAndroid.open({
+          value: time,
+          mode: 'time',
+          is24Hour: true,
+          onChange: (event: any, selectedDate?: Date) => {
+            if (selectedDate) setTime(selectedDate);
+          },
+        });
+      });
     } else {
-      // Navigate to welcome screen when onboarding is complete
-      router.replace('/welcome');
+      setShowTimePicker(true);
     }
   };
 
-  return (
-    <LinearGradient
-      colors={['#E3F2FD', '#FFFFFF']}
-      style={styles.gradient}
+  // Progress bar width
+  const progress = [0.2, 0.4, 0.6, 0.8, 1][step];
+
+  // Avatar colors and initials (fallback)
+  const avatarColors = [
+    '#A78BFA', '#F472B6', '#F87171', '#34D399', '#60A5FA', '#FBBF24', '#F9A8D4', '#38BDF8', '#FCA5A5', '#A3E635', '#FDBA74', '#818CF8', '#FDE68A', '#FCD34D', '#FECACA', '#C4B5FD', '#FEC8D8', '#B5F4EA', '#B5F4FD'
+  ];
+  const avatarInitials = ['AL','JS','MK','CP','TR','LS','AM','JD','SK','BP','EM','RS','KT','MG','LB','AD','JP','SM','TC'];
+
+  // Testimonial data
+  const testimonials = [
+    {
+      name: 'Emily R.',
+      title: 'Cool app',
+      review: 'Slumber helped me finally get a good night’s sleep. The community is so supportive and the reminders keep me on track!',
+      stars: 5,
+    },
+    {
+      name: 'James T.',
+      title: 'Life-changing',
+      review: 'I never thought a simple bedtime routine could make such a difference. Highly recommend to anyone who struggles with sleep.',
+      stars: 5,
+    },
+  ];
+
+  // Step 0: Welcome
+  const WelcomeStep = () => (
+    <SafeAreaView style={styles.safe}>
+      <View style={styles.topContent}>
+        <View style={styles.moonTile}>
+          <Ionicons name="moon-outline" size={30} color="#fff" />
+        </View>
+        <View style={{ alignItems: 'center', marginBottom: 8 }}>
+          <Text style={styles.h1}>Welcome to</Text>
+          <Text style={[styles.h1, styles.peach]}>Slumber!</Text>
+        </View>
+        <Text style={styles.sub}>Your journey to better sleep starts here. Let’s set up your profile.</Text>
+      </View>
+      <TouchableOpacity
+        activeOpacity={0.9}
+        style={styles.cta}
+        onPress={() => setStep(1)}
+        accessibilityRole="button"
+        accessibilityLabel="Let's Go"
+      >
+        <Text style={styles.ctaText}>Let's Go</Text>
+      </TouchableOpacity>
+    </SafeAreaView>
+  );
+
+  // Step 1: Name
+  const NameStep = () => (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={{ flex: 1 }}
     >
-      <SafeAreaView style={styles.safeArea}>
-        <StatusBar backgroundColor="#E3F2FD" barStyle="dark-content" />
-        {/* Wave Pattern Background */}
-        <View style={styles.wavePattern}>
-          <Animated.View style={[
-            styles.wave1,
-            styles.waveCommon,
-            {
-              transform: [{
-                translateY: wave1Animation.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, 40]
-                })
-              }]
-            }
-          ]} />
-          <Animated.View style={[
-            styles.wave2,
-            styles.waveCommon,
-            {
-              transform: [{
-                translateX: wave2Animation.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, 30]
-                })
-              }]
-            }
-          ]} />
-          <Animated.View style={[
-            styles.wave3,
-            styles.waveCommon,
-            {
-              transform: [{
-                translateY: wave3Animation.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, -35]
-                })
-              }]
-            }
-          ]} />
+      <SafeAreaView style={styles.safe}>
+  <View style={[styles.topContent, { justifyContent: 'center', marginTop: 0, flex: 1 }]}>
+          <Text style={styles.h1}>Hello!</Text>
+          <Text style={styles.h2}>What’s your name?</Text>
+          <TextInput
+            ref={nameInputRef}
+            style={styles.input}
+            placeholder="Your name"
+            placeholderTextColor="rgba(255,255,255,0.5)"
+            value={name}
+            onChangeText={setName}
+            keyboardType="default"
+            autoCapitalize="words"
+            accessibilityRole="text"
+            accessibilityLabel="Your name"
+            returnKeyType="done"
+          />
         </View>
-
-        {/* Main Content */}
-        <View style={styles.content}>
-          {/* Title Section */}
-          <View style={styles.titleSection}>
-            <Text style={styles.title}>{currentStepData.title}</Text>
-            {currentStepData.subtitle && (
-              <Text style={styles.subtitle}>{currentStepData.subtitle}</Text>
-            )}
-          </View>
-
-          {/* Stats Section (for step 1) */}
-          {currentStep === 1 && (
-            <View style={styles.statsSection}>
-                {currentStepData.stats?.map((stat, index) => (
-                    <View key={index} style={styles.statItem}>
-                      <View style={styles.statIcon}>
-                        <Ionicons
-                          name={index === 0 ? "time-outline" : "flash-outline"}
-                          size={24}
-                          color={index === 0 ? "#007AFF" : "#34C759"}
-                        />
-                      </View>
-                      <Text style={styles.statNumber}>{stat.number}</Text>
-                      <Text style={styles.statLabel}>{stat.label}</Text>
-                    </View>
-                  ))}
-            </View>
-          )}
-        </View>
-
-        {/* Continue Button */}
-        <TouchableOpacity style={styles.continueButton} onPress={nextStep}>
-          <Text style={styles.continueButtonText}>Continue</Text>
-          <Ionicons name="arrow-forward" size={20} color="white" />
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={[styles.cta, name.trim().length < 2 && { opacity: 0.5 }]}
+          onPress={async () => {
+            if (name.trim().length >= 2) {
+              await AsyncStorage.setItem('profile.name', name.trim());
+              setStep(2);
+            }
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Continue"
+          disabled={name.trim().length < 2}
+        >
+          <Text style={styles.ctaText}>Continue</Text>
         </TouchableOpacity>
+      </SafeAreaView>
+    </KeyboardAvoidingView>
+  );
 
-        {/* Progress Indicators */}
-        <View style={styles.progressContainer}>
-          {onboardingSteps.map((_, index) => (
-            <View
-              key={index}
-              style={[
-                styles.progressDot,
-                index === currentStep && styles.progressDotActive
-              ]}
+  // Step 2: Bedtime
+  const BedtimeStep = () => (
+    <SafeAreaView style={styles.safe}>
+      <View style={[styles.topContent, { justifyContent: 'center', marginTop: 0, flex: 1 }]}> 
+        <Text style={styles.h1}>Set your bedtime</Text>
+        <Text style={styles.sub}>
+          Choose which days you want reminders, and set your ideal bedtime. You can always change this later.
+        </Text>
+        <TouchableOpacity style={styles.timeBlock} onPress={openTimePicker} accessibilityRole="button" accessibilityLabel="Pick bedtime">
+          <Ionicons name="notifications-outline" size={22} color="#FFD59E" style={{ marginRight: 8 }} />
+          <Text style={styles.timeText}>{formatTime(time)}</Text>
+        </TouchableOpacity>
+        {showTimePicker && Platform.OS === 'ios' && (
+          <View style={{
+            backgroundColor: 'rgba(30,30,40,0.95)',
+            borderRadius: 12,
+            marginTop: 12,
+            padding: 8,
+            alignSelf: 'center',
+            width: '100%',
+            maxWidth: undefined,
+            shadowColor: '#000',
+            shadowOpacity: 0.25,
+            shadowRadius: 12,
+            shadowOffset: { width: 0, height: 4 },
+          }}>
+            <DateTimePicker
+              value={time}
+              mode="time"
+              is24Hour={true}
+              display="spinner"
+              onChange={(event, selectedDate) => {
+                setShowTimePicker(false);
+                if (selectedDate) setTime(selectedDate);
+              }}
+              style={{ backgroundColor: 'transparent', borderRadius: 12 }}
             />
+          </View>
+        )}
+        <View style={styles.chipRow}>
+          {days.map((d, i) => {
+            const selected = selectedDays[i] === d;
+            return (
+              <TouchableOpacity
+                key={d + i}
+                style={[styles.chip, selected ? styles.chipSelected : styles.chipUnselected]}
+                onPress={() => {
+                  setSelectedDays(prev => {
+                    const newDays = [...prev];
+                    if (selected) {
+                      newDays[i] = '';
+                    } else {
+                      newDays[i] = d;
+                    }
+                    return newDays;
+                  });
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={selected ? `Unselect ${d}` : `Select ${d}`}
+              >
+                <Text style={[styles.chipText, selected ? styles.chipTextSelected : styles.chipTextUnselected]}>{d}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+      <TouchableOpacity
+        activeOpacity={0.9}
+        style={styles.cta}
+        onPress={async () => {
+          await AsyncStorage.setItem('bedtime.time', formatTime(time));
+          await AsyncStorage.setItem('bedtime.days', JSON.stringify(selectedDays));
+          const { scheduleBedtimeReminders } = await import('@/src/lib/reminders');
+          await scheduleBedtimeReminders(formatTime(time), selectedDays as string[]);
+          setStep(3);
+        }}
+        accessibilityRole="button"
+        accessibilityLabel="Continue"
+      >
+        <Text style={styles.ctaText}>Continue</Text>
+      </TouchableOpacity>
+    </SafeAreaView>
+  );
+  const SuggestionsStep = () => (
+    <SafeAreaView style={styles.safe}>
+      <ScrollView contentContainerStyle={styles.suggScroll} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.suggHeader}>
+          <Text style={styles.emojiBadge}>😴</Text>
+          <Text style={styles.suggH1}>
+  Get Better Sleep with
+  {'\n'}Personalized Suggestions
+</Text>
+          <Text style={styles.suggSub}>We have saved them in your favorites.</Text>
+        </View>
+
+        {/* Mix list — map SEED_MIXES */}
+        <View style={{ gap: 10, marginTop: 10 }}>
+          {SEED_MIXES.map(mix => (
+            <MixCard key={mix.id} mix={mix} />
           ))}
         </View>
-      </SafeAreaView>
-    </LinearGradient>
+
+        <Text style={styles.sectionHint}>You’re in good hands</Text>
+
+        {/* Sleeping Sounds 101 */}
+        <Text style={styles.s101Title}>Sleeping Sounds 101</Text>
+        <View style={styles.qaBlock}>
+          <Text style={styles.q}><Text style={styles.qEmoji}>❓</Text> Do relaxing sounds really help sleep better?</Text>
+          <Text style={styles.a}>Studies suggest steady, neutral audio (rain, stream, cabin) can aid falling asleep and improve perceived sleep quality.</Text>
+        </View>
+        <View style={styles.qaBlock}>
+          <Text style={styles.q}><Text style={styles.qEmoji}>🕰️</Text> What should I do exactly?</Text>
+          <Text style={styles.a}>Use soothing sounds during wind-down and keep a consistent bedtime; you’ll notice changes in 2–3 weeks.</Text>
+        </View>
+        <View style={styles.qaBlock}>
+          <Text style={styles.q}><Text style={styles.qEmoji}>🎧</Text> What if I’m a light sleeper?</Text>
+          <Text style={styles.a}>Choose low-variance sounds like Airplane Cabin or Campfire and avoid sharp transitions or sudden peaks.</Text>
+        </View>
+      </ScrollView>
+
+
+      <TouchableOpacity style={styles.cta} onPress={() => setStep(4)} accessibilityRole="button">
+        <Text style={styles.ctaText}>Let’s get it!</Text>
+      </TouchableOpacity>
+    </SafeAreaView>
+  );
+
+// TrialTeaserStep component (move outside main render)
+const TrialTeaserStep = () => {
+  const opacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.sequence([
+      Animated.timing(opacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+      Animated.delay(2000),
+      Animated.timing(opacity, { toValue: 0, duration: 500, useNativeDriver: true }),
+    ]).start(() => {
+      router.replace('/subscription');
+    });
+  }, []);
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <View style={styles.trialWrap}>
+        <Animated.Text style={[styles.trialLine, { opacity }]}>Start <Text style={styles.trialNumber}>3</Text> days for free!</Animated.Text>
+      </View>
+    </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-  },
-  gradient: {
-    flex: 1,
-    padding: 0,
-    margin: 0,
-  },
-  wavePattern: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  wave1: {
-    position: 'absolute',
-    top: 100,
-    left: -50,
-    width: 200,
-    height: 100,
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
-    borderRadius: 100,
-  },
-  wave2: {
-    position: 'absolute',
-    top: 200,
-    right: -30,
-    width: 150,
-    height: 80,
-    backgroundColor: 'rgba(52, 199, 89, 0.1)',
-    borderRadius: 80,
-  },
-  wave3: {
-    position: 'absolute',
-    bottom: 200,
-    left: 50,
-    width: 120,
-    height: 60,
-    backgroundColor: 'rgba(255, 149, 0, 0.1)',
-    borderRadius: 60,
-  },
-  waveCommon: {
-    position: 'absolute',
-  },
+  // Main render
+  return (
+    <ImageBackground
+      source={require('@/assets/images/onboarding-bg.jpg')}
+      style={styles.bg}
+      imageStyle={styles.bgImage}
+      resizeMode="stretch"
+      blurRadius={step === 0 ? 0.5 : 2}
+    >
+      <StatusBar barStyle="light-content" />
+      <LinearGradient
+        colors={['rgba(0,0,0,0.25)', 'rgba(0,0,0,0.75)']}
+        style={StyleSheet.absoluteFill}
+      />
+      {step > 0 && <View style={[styles.progressBar, { width: `${progress * 100}%` }]} />}
+  {step === 0 && WelcomeStep()}
+  {step === 1 && NameStep()}
+  {step === 2 && BedtimeStep()}
+  {step === 3 && SuggestionsStep()}
+  {step === 4 && <TrialTeaserStep />}
+    </ImageBackground>
+  );
+}
 
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 30,
-    marginTop: 40, // Add some top margin to push content down
-  },
-  titleSection: {
-    alignItems: 'center',
-    marginBottom: 40,
-    justifyContent: 'center',
-    flex: 0,
-    maxWidth: '80%', // Constrain width for better readability
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    textAlign: 'center',
-    lineHeight: 40,
-  },
-  subtitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#007AFF',
-    textAlign: 'center',
-    marginTop: 8,
-  },
-  statsSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
-    marginTop: 40,
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statIcon: {
-    marginBottom: 10,
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-  },
-  statLabel: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
-  },
-  waveformSection: {
-    width: '100%',
-    alignItems: 'center',
-    marginTop: 40,
-  },
-  waveform: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    height: 80,
-    marginBottom: 30,
-    position: 'relative',
-  },
-  waveformBar: {
-    width: 3,
-    backgroundColor: '#007AFF',
-    marginHorizontal: 1,
-    borderRadius: 2,
-  },
-  playbackIndicator: {
+const styles = StyleSheet.create({
+// ...existing code...
+  suggScroll: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 24, gap: 12 },
+  suggHeader: { alignItems: 'center', gap: 8, marginTop: 8 },
+  emojiBadge: { fontSize: 28, marginBottom: 4 },
+  suggH1: { color:'#fff', fontSize:22, fontWeight: '800', textAlign:'center', lineHeight:28 },
+  suggSub: { color:'rgba(255,255,255,0.8)', fontSize:14, textAlign:'center', maxWidth:'90%' },
+  // Removed local mix card styles; now using MixCard component for visual consistency
+  sectionHint: { color:'rgba(255,255,255,0.7)', textAlign:'center', marginVertical:12, fontWeight:'600', fontSize:18, paddingTop:27, paddingBottom:27 },
+  s101Title: { color:'#fff', fontSize:20, fontWeight:'800', marginTop:6, marginBottom:4 },
+  qaBlock: { marginTop:8 },
+  qEmoji: { fontSize:16 },
+  q: { color:'#fff', fontSize:16, fontWeight:'700', marginBottom:4 },
+  a: { color:'rgba(255,255,255,0.85)', fontSize:15, lineHeight:21 },
+  bg: { flex: 1 },
+  bgImage: {},
+  progressBar: {
     position: 'absolute',
-    left: '50%',
-    width: 2,
-    height: 80,
-    backgroundColor: '#000',
-    borderRadius: 1,
+    top: 82,
+    left: '7%',
+    height: 4,
+    width: '75%',
+    backgroundColor: '#FFD59E',
+    borderRadius: 2,
+    zIndex: 10,
   },
-  transcriptPreview: {
-    width: '100%',
-  },
-  transcriptItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 15,
-  },
-  avatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    marginHorizontal: 8,
-  },
-  transcriptContent: {
+  safe: {
     flex: 1,
+    paddingHorizontal: 24,
+    justifyContent: 'space-between',
   },
-  speakerName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#007AFF',
-  },
-  timestamp: {
-    fontSize: 12,
-    color: '#999',
-    marginLeft: 8,
-  },
-  messageBubble: {
-    backgroundColor: '#f0f0f0',
-    padding: 12,
-    borderRadius: 16,
-    marginTop: 4,
-    alignSelf: 'flex-start',
-  },
-  messageBubbleRight: {
-    alignSelf: 'flex-end',
-  },
-  messageText: {
-    fontSize: 14,
-    color: '#1a1a1a',
-  },
-  // Removed unused report styles
-  continueButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 30,
-    paddingVertical: 15,
-    borderRadius: 25,
-    flexDirection: 'row',
+  topContent: {
     alignItems: 'center',
-    marginBottom: 40,
-    alignSelf: 'center',
+    justifyContent: 'flex-start',
+    gap: 4,
+    paddingHorizontal: 12,
+    marginTop: 100,
   },
-  continueButtonText: {
-    color: 'white',
+  moonTile: {
+    width: 72,
+    height: 72,
+    borderRadius: 20,
+    backgroundColor: '#FFD59E',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+    padding: 10,
+  },
+  h1: {
+    color: '#fff',
+    fontSize: 32,
+    fontWeight: '800',
+    textAlign: 'center',
+    lineHeight: 38,
+  },
+  peach: {
+    color: '#FFD59E',
+    fontWeight: '900',
+  },
+  h2: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 18,
+  },
+  input: {
+    width: '90%',
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    color: '#fff',
     fontSize: 18,
     fontWeight: '600',
-    marginRight: 8,
+    paddingHorizontal: 18,
+    marginTop: 10,
+    marginBottom: 10,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.18)',
   },
-  progressContainer: {
+  brand: {
+    color: '#FFD59E',
+    fontWeight: '900',
+  },
+  sub: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 6,
+    maxWidth: '78%',
+    lineHeight: 22,
+    marginBottom: 10,
+  },
+  chipRow: {
     flexDirection: 'row',
+    gap: 10,
+    marginVertical: 18,
+    marginBottom: 10,
+    alignSelf: 'center',
+  },
+  chip: {
+    height: 44,
+    minWidth: 40,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 30,
+    marginHorizontal: 2,
   },
-  progressDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#ccc',
-    marginHorizontal: 4,
+  chipSelected: {
+    backgroundColor: 'rgba(30,30,40,0.5)',
   },
-  progressDotActive: {
-    backgroundColor: '#007AFF',
+  chipUnselected: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
+  chipText: {
+    fontSize: 16,
+    fontWeight: '700',
+    paddingHorizontal: 2,
+  },
+  chipTextSelected: {
+    color: '#fff',
+  },
+  chipTextUnselected: {
+    color: 'rgba(255,255,255,0.6)',
+  },
+  timeBlock: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  timeText: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  skip: {
+    alignSelf: 'center',
+    marginTop: 10,
+    marginBottom: 2,
+  },
+  skipText: {
+    color: '#FFD59E',
+    fontSize: 16,
+    fontWeight: '700',
+    textAlign: 'center',
+    textDecorationLine: 'underline',
+  },
+  cta: {
+    alignSelf: 'center',
+    width: '86%',
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FFD59E',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 5,
+  },
+  ctaText: {
+    color: '#1F2937',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  // Add TrialTeaserStep styles to StyleSheet.create
+  trialWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingBottom: 0 },
+  trialLine: { color: '#FFFFFF', fontSize: 28, fontWeight: '800', textAlign: 'center' },
+  trialNumber: { color: '#FFD59E', fontWeight: '900' },
 });
-
-export default OnboardingScreen;

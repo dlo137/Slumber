@@ -1,9 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import Slider from '@react-native-community/slider';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
@@ -21,6 +20,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAudioPlayer } from '../components/AudioPlayerContext';
 import { SoundItem } from '../constants/sounds';
+import { saveMix } from './lib/mixes-storage';
 
 const PEACH = '#FFDAB9';
 const DARK = '#18123A';
@@ -94,58 +94,58 @@ const TrackRow: React.FC<TrackRowProps> = ({ id, title, image, volume, onVolume,
 export default function MixerScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const params = useLocalSearchParams();
   const audio = useAudioPlayer();
   const [saving, setSaving] = useState(false);
   const [volumes, setVolumes] = useState<Record<string, number>>({});
+  const [hydratedFromParams, setHydratedFromParams] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [mixName, setMixName] = useState('');
-  const FAVORITES_KEY = 'user_favorite_mixes';
+  // FAVORITES_KEY now handled in mixes-storage.ts
 
-  // Restore mix from navigation params if present
+  // Always hydrate from params, treat params as source of truth
+  // Two-step hydration: first set selectedIds, then set volumes after selectedIds are ready
   useEffect(() => {
-    // @ts-ignore
-    const params = router?.params || {};
-    // Parse params if they are JSON strings
     let soundIds: string[] | undefined;
-    let volumes: Record<string, number> | undefined;
+    let volumesFromParams: Record<string, number> | undefined;
+
     if (typeof params.soundIds === 'string') {
-      try {
-        soundIds = JSON.parse(params.soundIds);
-      } catch {}
-    } else if (Array.isArray(params.soundIds)) {
-      soundIds = params.soundIds;
+      try { soundIds = JSON.parse(params.soundIds); } catch {}
     }
     if (typeof params.volumes === 'string') {
-      try {
-        volumes = JSON.parse(params.volumes);
-      } catch {}
-    } else if (params.volumes && typeof params.volumes === 'object') {
-      volumes = params.volumes;
+      try { volumesFromParams = JSON.parse(params.volumes); } catch {}
     }
-    if (soundIds && Array.isArray(soundIds)) {
-      if (audio.selectedIds.length === 0) {
-        audio.setSelectedIds(soundIds);
-        if (volumes) {
-          setVolumes(volumes);
-          Object.entries(volumes).forEach(([id, v]) => {
-            audio.setVolume(id, v as number);
-          });
-        }
-      }
+
+    if (soundIds?.length) {
+      audio.setSelectedIds(soundIds);
     }
-    if (typeof params.title === 'string') {
-      setMixName(params.title);
-    }
+    if (typeof params.title === 'string') setMixName(params.title);
+    // Store volumesFromParams in a ref for step 2
+    (window as any).__pendingVolumes = volumesFromParams;
   }, []);
 
-  // Auto-close if empty
+  // Step 2: hydrate volumes only after selectedIds are set
   useEffect(() => {
-    if (audio.selectedIds.length === 0) {
-      setTimeout(() => router.back(), 200);
+    const pendingVolumes = (window as any).__pendingVolumes;
+    if (pendingVolumes && audio.selectedIds.length > 0) {
+      setVolumes(pendingVolumes);
+      Object.entries(pendingVolumes).forEach(([id, v]) => audio.setVolume(id, v as number));
+      setHydratedFromParams(true);
+      (window as any).__pendingVolumes = undefined;
     }
   }, [audio.selectedIds]);
 
+  // Auto-close if empty, but skip if restoring from params
   useEffect(() => {
+    const restoring = typeof params.soundIds === 'string' && params.soundIds.length > 0;
+    if (audio.selectedIds.length === 0 && !restoring) {
+      setTimeout(() => router.back(), 200);
+    }
+  }, [audio.selectedIds, params.soundIds]);
+
+  useEffect(() => {
+    // Only run defaulting logic if not hydrated from params
+    if (hydratedFromParams) return;
     setVolumes((prev) => {
       const newVolumes: Record<string, number> = {};
       audio.selectedIds.forEach((id) => {
@@ -153,7 +153,7 @@ export default function MixerScreen() {
       });
       return newVolumes;
     });
-  }, [audio.selectedIds]);
+  }, [audio.selectedIds, hydratedFromParams]);
 
   const handleVolume = (id: string, value: number) => {
     setVolumes((prev) => ({ ...prev, [id]: value }));
@@ -227,15 +227,15 @@ export default function MixerScreen() {
       allSounds.push(...section.data);
     }
     const first = allSounds.find((s: SoundItem) => s.id === ids[0]);
-    if (!first) return ['#1F2B6C', '#2E0F4F'];
+    if (!first) return ['#1F2B6C', '#2E0F4F'] as [string, string];
     switch (first.category) {
-      case 'Rain': return ['#1F2B6C', '#2E0F4F'];
-      case 'Fire': return ['#2B5876', '#4E4376'];
-      case 'Water': return ['#0F3755', '#1D224F'];
-      case 'Noise': return ['#1A2980', '#26D0CE'];
-      case 'ASMR': return ['#18123A', '#FFDAB9'];
-      case 'Nature': return ['#2B5876', '#4E4376'];
-      default: return ['#1F2B6C', '#2E0F4F'];
+      case 'Rain': return ['#1F2B6C', '#2E0F4F'] as [string, string];
+      case 'Fire': return ['#2B5876', '#4E4376'] as [string, string];
+      case 'Water': return ['#0F3755', '#1D224F'] as [string, string];
+      case 'Noise': return ['#1A2980', '#26D0CE'] as [string, string];
+      case 'ASMR': return ['#18123A', '#FFDAB9'] as [string, string];
+      case 'Nature': return ['#2B5876', '#4E4376'] as [string, string];
+      default: return ['#1F2B6C', '#2E0F4F'] as [string, string];
     }
   };
 
@@ -247,13 +247,18 @@ export default function MixerScreen() {
     for (const section of require('../constants/sounds').SOUND_SECTIONS) {
       allSounds.push(...section.data);
     }
+    // Get the actual current volume for each sound from audio context
+    const mixVolumes: Record<string, number> = {};
+    audio.selectedIds.forEach((id) => {
+      mixVolumes[id] = volumes[id] ?? 1;
+    });
     const tracks = audio.selectedIds.map((id) => {
       const sound = allSounds.find((s) => s.id === id);
       return {
         id,
         title: sound ? sound.title : id.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
         image: sound ? sound.image : 'https://placehold.co/48x48',
-        volume: volumes[id] ?? 1,
+        volume: mixVolumes[id],
         category: sound ? sound.category : '',
       };
     });
@@ -263,20 +268,16 @@ export default function MixerScreen() {
       emojis: getMixEmojis(audio.selectedIds),
       gradient: getMixGradient(audio.selectedIds),
       soundIds: [...audio.selectedIds],
-      volumes: { ...volumes },
-      tracks, // full track data for restoring
+      volumes: mixVolumes,
+      tracks,
     };
-    try {
-      const existing = await AsyncStorage.getItem(FAVORITES_KEY);
-      const mixes = existing ? JSON.parse(existing) : [];
-      mixes.push(newMix);
-      await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(mixes));
-    } catch {}
+    await saveMix(newMix);
     setShowSaveModal(false);
     setMixName('');
-    // Stop all sounds
+    // Reset state so next visit doesn't carry stale selection
     audio.stopAll();
-    // Navigate to favorites screen instantly after saving
+    audio.clearAll();
+    setVolumes({});
     setTimeout(() => {
       router.replace('/favorites');
     }, 100);

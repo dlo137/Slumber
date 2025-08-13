@@ -15,7 +15,7 @@ export const SOUND_SECTIONS: SoundSection[] = [
   { id: 'light-rain', title: 'Light Rain', image: 'https://images.unsplash.com/photo-1527766833261-b09c3163a791?q=80&w=800', category: 'Rain' },
   { id: 'thunder-rain', title: 'Thunder Rain', image: 'https://images.unsplash.com/photo-1461511669078-d46bf351cd6e?q=80&w=800', category: 'Rain' },
   { id: 'forrest-rain', title: 'Forest Rain', image: 'https://images.unsplash.com/photo-1503435824048-a799a3a84bf7?q=80&w=800', category: 'Rain' },
-  { id: 'car-rain', title: 'Car Rain', image: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=800&q=80', category: 'Rain' },
+    { id: 'car-rain', title: 'Car Rain', image: 'car-in-rain-local', category: 'Rain' },
   { id: 'roof-rain', title: 'Roof Rain', image: 'https://images.unsplash.com/photo-1465101046530-73398c7f28ca?q=80&w=800', category: 'Rain' },
     ],
   },

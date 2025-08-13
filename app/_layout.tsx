@@ -8,7 +8,6 @@ import { useColorScheme } from '../hooks/useColorScheme';
 
 
 import { AudioPlayerProvider } from '../components/AudioPlayerContext';
-import { DataStoreProvider } from '../src/store/DataStore';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -22,23 +21,24 @@ export default function RootLayout() {
   }
 
   return (
-    <DataStoreProvider>
-      <AudioPlayerProvider>
-        <StripeProvider publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''}>
-          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-            <Stack screenOptions={{ headerShown: false }} initialRouteName="onboarding">
-              <Stack.Screen name="onboarding" />
-              <Stack.Screen name="welcome" />
-              <Stack.Screen name="login" />
-              <Stack.Screen name="signup" />
-              <Stack.Screen name="subscription" />
-              {/* <Stack.Screen name="(tabs)" /> */}
-              <Stack.Screen name="+not-found" />
-            </Stack>
-            <StatusBar style="auto" />
-          </ThemeProvider>
-        </StripeProvider>
-      </AudioPlayerProvider>
-    </DataStoreProvider>
+    <AudioPlayerProvider>
+      <StripeProvider
+        publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''}
+        merchantIdentifier="merchant.com.slumber.slumber"
+      >
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <Stack screenOptions={{ headerShown: false }} initialRouteName="onboarding">
+            <Stack.Screen name="onboarding" />
+            <Stack.Screen name="welcome" />
+            <Stack.Screen name="login" />
+            <Stack.Screen name="signup" />
+            <Stack.Screen name="subscription" />
+            {/* <Stack.Screen name="(tabs)" /> */}
+            <Stack.Screen name="+not-found" />
+          </Stack>
+          <StatusBar style="auto" />
+        </ThemeProvider>
+      </StripeProvider>
+    </AudioPlayerProvider>
   );
 }
