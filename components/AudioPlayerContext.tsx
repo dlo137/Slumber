@@ -6,6 +6,7 @@ export type AudioPlayerState = {
   selectedIds: string[];
   isPlaying: boolean;
   play: (id: string, source: any) => void;
+  pause: (id: string) => void;
   stop: (id: string) => void;
   stopAll: () => void;
   toggle: (id: string, source: any) => void;
@@ -26,9 +27,10 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const soundRefs = useRef<Record<string, Audio.Sound>>({});
   const sleepTimerRef = useRef<any>(null);
 
+
   const play = useCallback(async (id: string, source: any) => {
     if (soundRefs.current[id]) {
-      await soundRefs.current[id].replayAsync();
+      await soundRefs.current[id].playAsync();
     } else {
       const { sound } = await Audio.Sound.createAsync(source, { isLooping: true, shouldPlay: true });
       soundRefs.current[id] = sound;
@@ -36,6 +38,15 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
     setSelectedIds((prev) => prev.includes(id) ? prev : [...prev, id]);
     setIsPlaying(true);
+    Haptics.selectionAsync();
+  }, []);
+
+  const pause = useCallback(async (id: string) => {
+    if (soundRefs.current[id]) {
+      await soundRefs.current[id].pauseAsync();
+    }
+    // Do NOT remove from selectedIds, just pause
+    setIsPlaying(false);
     Haptics.selectionAsync();
   }, []);
 
@@ -64,13 +75,15 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     Haptics.selectionAsync();
   }, []);
 
+  // Toggle: if playing, pause; if paused or not started, play
   const toggle = useCallback((id: string, source: any) => {
     if (selectedIds.includes(id)) {
-      stop(id);
+      // If already playing, pause instead of stop
+      pause(id);
     } else {
       play(id, source);
     }
-  }, [selectedIds, play, stop]);
+  }, [selectedIds, play, pause]);
 
   const setSleepTimer = useCallback((ms: number) => {
     if (sleepTimerRef.current) clearTimeout(sleepTimerRef.current);
@@ -91,7 +104,7 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, []);
 
   return (
-    <AudioPlayerContext.Provider value={{ selectedIds, isPlaying, play, stop, stopAll, toggle, setSleepTimer }}>
+    <AudioPlayerContext.Provider value={{ selectedIds, isPlaying, play, pause, stop, stopAll, toggle, setSleepTimer }}>
       {children}
     </AudioPlayerContext.Provider>
   );

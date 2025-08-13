@@ -63,8 +63,6 @@ function TabLayoutInner() {
         playing={audio.isPlaying}
         onPlayPause={() => {
           if (audio.selectedIds.length > 0) {
-            const id = audio.selectedIds[0];
-            // Only rain sounds are supported for now
             const RAIN_AUDIO_MAP = {
               'heavy-rain': require('../../assets/sounds/rain/heavy-rain.mp3'),
               'light-rain': require('../../assets/sounds/rain/light-rain.mp3'),
@@ -73,7 +71,17 @@ function TabLayoutInner() {
               'car-rain': require('../../assets/sounds/rain/car-rain.mp3'),
               'roof-rain': require('../../assets/sounds/rain/roof-rain.mp3'),
             };
-            audio.toggle(id, RAIN_AUDIO_MAP[id as keyof typeof RAIN_AUDIO_MAP]);
+            if (audio.isPlaying) {
+              // Pause all selected sounds
+              audio.selectedIds.forEach((id) => {
+                audio.pause(id);
+              });
+            } else {
+              // Resume all selected sounds
+              audio.selectedIds.forEach((id) => {
+                audio.play(id, RAIN_AUDIO_MAP[id as keyof typeof RAIN_AUDIO_MAP]);
+              });
+            }
           }
         }}
         onOptions={() => {}}

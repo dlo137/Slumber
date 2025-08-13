@@ -118,10 +118,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     backgroundColor: '#18123A',
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'center', // Ensures vertical centering
     justifyContent: 'space-between',
     paddingHorizontal: 24,
-    paddingTop: 10,
+    paddingTop: 0, // Remove extra top padding
     minHeight: 56,
     zIndex: 100,
     borderRadius: 40,
@@ -132,10 +132,12 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   iconButton: {
-    padding: 8,
+    paddingVertical: 0, // Remove vertical padding
+    paddingHorizontal: 8,
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    height: 40, // Fixed height for vertical alignment
   },
   badge: {
     position: 'absolute',
