@@ -4,8 +4,10 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
+import { useColorScheme } from '../hooks/useColorScheme';
 
-import { useColorScheme } from '@/hooks/useColorScheme';
+
+import { AudioPlayerProvider } from '../components/AudioPlayerContext';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -19,19 +21,21 @@ export default function RootLayout() {
   }
 
   return (
-    <StripeProvider publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''}>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack screenOptions={{ headerShown: false }} initialRouteName="onboarding">
-          <Stack.Screen name="onboarding" />
-          <Stack.Screen name="welcome" />
-          <Stack.Screen name="login" />
-          <Stack.Screen name="signup" />
-          <Stack.Screen name="subscription" />
-          {/* <Stack.Screen name="(tabs)" /> */}
-          <Stack.Screen name="+not-found" />
-        </Stack>
-        <StatusBar style="auto" />
-      </ThemeProvider>
-    </StripeProvider>
+    <AudioPlayerProvider>
+      <StripeProvider publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''}>
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <Stack screenOptions={{ headerShown: false }} initialRouteName="onboarding">
+            <Stack.Screen name="onboarding" />
+            <Stack.Screen name="welcome" />
+            <Stack.Screen name="login" />
+            <Stack.Screen name="signup" />
+            <Stack.Screen name="subscription" />
+            {/* <Stack.Screen name="(tabs)" /> */}
+            <Stack.Screen name="+not-found" />
+          </Stack>
+          <StatusBar style="auto" />
+        </ThemeProvider>
+      </StripeProvider>
+    </AudioPlayerProvider>
   );
 }

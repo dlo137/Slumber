@@ -1,17 +1,18 @@
 // Install: expo install expo-linear-gradient react-native-safe-area-context @expo/vector-icons
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AudioPlayerProvider, useAudioPlayer } from '../../components/AudioPlayerContext';
+import { useAudioPlayer } from '../../components/AudioPlayerContext';
 import { MiniPlayerBar } from '../../components/MiniPlayerBar';
 
 
 function TabLayoutInner() {
   const insets = useSafeAreaInsets();
   const audio = useAudioPlayer();
+  const router = useRouter();
   return (
     <View style={{ flex: 1 }}>
       <LinearGradient
@@ -59,8 +60,8 @@ function TabLayoutInner() {
         />
       </Tabs>
       <MiniPlayerBar
-        visible={audio.selectedIds && audio.selectedIds.length > 0}
-        playing={audio.isPlaying}
+        visible={audio.selectedIds.length > 0}
+        playing={audio.selectedIds.length > 0 && audio.isPlaying}
         onPlayPause={() => {
           if (audio.selectedIds.length > 0) {
             const RAIN_AUDIO_MAP = {
@@ -85,7 +86,7 @@ function TabLayoutInner() {
           }
         }}
         onOptions={() => {}}
-        onTimer={() => {}}
+        onTimer={() => router.push('/timer')}
         showBadge={true}
       />
     </View>
@@ -93,9 +94,5 @@ function TabLayoutInner() {
 }
 
 export default function TabLayout() {
-  return (
-    <AudioPlayerProvider>
-      <TabLayoutInner />
-    </AudioPlayerProvider>
-  );
+  return <TabLayoutInner />;
 }

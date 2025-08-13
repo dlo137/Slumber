@@ -9,9 +9,14 @@ export type AudioPlayerState = {
   pause: (id: string) => void;
   stop: (id: string) => void;
   stopAll: () => void;
+  forceStopAll: () => Promise<void>;
+  setVolume: (id: string, volume: number) => Promise<void>;
   toggle: (id: string, source: any) => void;
   setSleepTimer: (ms: number) => void;
 };
+  // ...
+
+
 
 const AudioPlayerContext = createContext<AudioPlayerState | undefined>(undefined);
 
@@ -27,6 +32,33 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const soundRefs = useRef<Record<string, Audio.Sound>>({});
   const sleepTimerRef = useRef<any>(null);
 
+  // Force stop all: guarantees all sounds are stopped, selectedIds is cleared, and isPlaying is false
+  const setVolume = async (id: string, volume: number) => {
+    if (soundRefs.current && soundRefs.current[id]) {
+      try {
+        await soundRefs.current[id].setVolumeAsync(volume);
+      } catch (e) {
+        // ignore
+      }
+    }
+  };
+  const forceStopAll = useCallback(async () => {
+    console.log('[AudioPlayerContext] forceStopAll called');
+    await Promise.all(Object.keys(soundRefs.current).map(async (id) => {
+      try {
+        await soundRefs.current[id].stopAsync();
+        await soundRefs.current[id].unloadAsync();
+      } catch {}
+    }));
+    soundRefs.current = {};
+    setSelectedIds([]);
+    setIsPlaying(false);
+    if (sleepTimerRef.current) {
+      clearTimeout(sleepTimerRef.current);
+      sleepTimerRef.current = null;
+    }
+    console.log('[AudioPlayerContext] forceStopAll finished. selectedIds:', [], 'isPlaying:', false);
+  }, []);
 
   const play = useCallback(async (id: string, source: any) => {
     if (soundRefs.current[id]) {
@@ -104,7 +136,7 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, []);
 
   return (
-    <AudioPlayerContext.Provider value={{ selectedIds, isPlaying, play, pause, stop, stopAll, toggle, setSleepTimer }}>
+    <AudioPlayerContext.Provider value={{ selectedIds, isPlaying, play, pause, stop, stopAll, forceStopAll, setVolume, toggle, setSleepTimer }}>
       {children}
     </AudioPlayerContext.Provider>
   );

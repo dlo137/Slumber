@@ -126,12 +126,6 @@ export default function SoundsScreen() {
         // Always unselect/stop if already selected
         audio.stop(id);
       } else {
-        // If paused, resume all selected sounds and play the new one
-        if (!audio.isPlaying && audio.selectedIds.length > 0) {
-          audio.selectedIds.forEach((selectedId) => {
-            audio.play(selectedId, RAIN_AUDIO_MAP[selectedId]);
-          });
-        }
         audio.play(id, RAIN_AUDIO_MAP[id]);
       }
       Haptics.selectionAsync();
