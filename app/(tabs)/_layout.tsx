@@ -5,9 +5,13 @@ import { Tabs } from 'expo-router';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AudioPlayerProvider, useAudioPlayer } from '../../components/AudioPlayerContext';
+import { MiniPlayerBar } from '../../components/MiniPlayerBar';
 
-export default function TabLayout() {
+
+function TabLayoutInner() {
   const insets = useSafeAreaInsets();
+  const audio = useAudioPlayer();
   return (
     <View style={{ flex: 1 }}>
       <LinearGradient
@@ -54,6 +58,36 @@ export default function TabLayout() {
           }}
         />
       </Tabs>
+      <MiniPlayerBar
+        visible={audio.selectedIds && audio.selectedIds.length > 0}
+        playing={audio.isPlaying}
+        onPlayPause={() => {
+          if (audio.selectedIds.length > 0) {
+            const id = audio.selectedIds[0];
+            // Only rain sounds are supported for now
+            const RAIN_AUDIO_MAP = {
+              'heavy-rain': require('../../assets/sounds/rain/heavy-rain.mp3'),
+              'light-rain': require('../../assets/sounds/rain/light-rain.mp3'),
+              'thunder-rain': require('../../assets/sounds/rain/thunder-rain.mp3'),
+              'forrest-rain': require('../../assets/sounds/rain/forrest-rain.mp3'),
+              'car-rain': require('../../assets/sounds/rain/car-rain.mp3'),
+              'roof-rain': require('../../assets/sounds/rain/roof-rain.mp3'),
+            };
+            audio.toggle(id, RAIN_AUDIO_MAP[id as keyof typeof RAIN_AUDIO_MAP]);
+          }
+        }}
+        onOptions={() => {}}
+        onTimer={() => {}}
+        showBadge={true}
+      />
     </View>
+  );
+}
+
+export default function TabLayout() {
+  return (
+    <AudioPlayerProvider>
+      <TabLayoutInner />
+    </AudioPlayerProvider>
   );
 }

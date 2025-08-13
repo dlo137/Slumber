@@ -1,43 +1,131 @@
+import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
 import React, { useMemo } from 'react';
-import { Dimensions, ImageBackground, Platform, SectionList, StyleSheet, Text, View } from 'react-native';
+import { Animated, Dimensions, Easing, ImageBackground, Platform, Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import carRain from '../../assets/sounds/rain/car-rain.mp3';
+import forrestRain from '../../assets/sounds/rain/forrest-rain.mp3';
+import heavyRain from '../../assets/sounds/rain/heavy-rain.mp3';
+import lightRain from '../../assets/sounds/rain/light-rain.mp3';
+import roofRain from '../../assets/sounds/rain/roof-rain.mp3';
+import thunderRain from '../../assets/sounds/rain/thunder-rain.mp3';
+import { useAudioPlayer } from '../../components/AudioPlayerContext';
 import { SOUND_SECTIONS, SoundItem } from '../../constants/sounds';
 
 const H_PADDING = 16;
 const GAP = 12;
 const NUM_COLUMNS = 3;
 
-const SoundTile: React.FC<{ item: SoundItem; size: number }> = ({ item, size }) => (
-  <View
-    style={[styles.tile, { width: size, height: size }]}
-    accessibilityRole="button"
-    accessibilityLabel={item.title}
-  >
-    <ImageBackground
-      source={{ uri: item.image }}
-      style={styles.tileBg}
-      imageStyle={styles.tileBgImage}
-      resizeMode="cover"
+type SoundTileProps = {
+  item: SoundItem;
+  size: number;
+  selected: boolean;
+  onPress: (id: string) => void;
+};
+
+const RAIN_AUDIO_MAP: Record<string, any> = {
+  'heavy-rain': heavyRain,
+  'light-rain': lightRain,
+  'thunder-rain': thunderRain,
+  'forrest-rain': forrestRain,
+  'car-rain': carRain,
+  'roof-rain': roofRain,
+};
+
+const BAR_COUNT = 5;
+const SoundTile: React.FC<SoundTileProps> = ({ item, size, selected, onPress }) => {
+  // Animated values for bars
+  const barAnims = React.useRef(
+    Array.from({ length: BAR_COUNT }, () => new Animated.Value(1))
+  ).current;
+
+  React.useEffect(() => {
+    let anims: Animated.CompositeAnimation[] = [];
+    if (selected) {
+      anims = barAnims.map((bar, i) =>
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(bar, {
+              toValue: Math.random() * 0.7 + 0.3,
+              duration: 200 + i * 40,
+              easing: Easing.linear,
+              useNativeDriver: true,
+            }),
+            Animated.timing(bar, {
+              toValue: 1,
+              duration: 200 + i * 40,
+              easing: Easing.linear,
+              useNativeDriver: true,
+            }),
+          ])
+        )
+      );
+      Animated.stagger(60, anims).start();
+    } else {
+      barAnims.forEach(bar => bar.setValue(1));
+    }
+    return () => {
+      anims.forEach(anim => anim.stop && anim.stop());
+    };
+  }, [selected]);
+
+  return (
+    <Pressable
+      onPress={() => onPress(item.id)}
+      style={[styles.tile, { width: size, height: size }, selected && { borderColor: '#FFD600', borderWidth: 2 }]}
+      accessibilityRole="button"
+      accessibilityLabel={item.title}
+      android_ripple={{ color: 'rgba(255,255,255,0.08)' }}
+      hitSlop={8}
     >
-      <LinearGradient
-        colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.35)']}
-        style={styles.tileOverlay}
-      />
-      <Text style={styles.tileText} numberOfLines={2}>{item.title}</Text>
-    </ImageBackground>
-  </View>
-);
+      <ImageBackground
+        source={{ uri: item.image }}
+        style={styles.tileBg}
+        imageStyle={styles.tileBgImage}
+        resizeMode="cover"
+      >
+        <LinearGradient
+          colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.35)']}
+          style={styles.tileOverlay}
+        />
+        {selected && (
+          <View style={styles.soundBarsContainer} pointerEvents="none">
+            {barAnims.map((anim, i) => (
+              <Animated.View
+                key={i}
+                style={[
+                  styles.soundBar,
+                  {
+                    transform: [{ scaleY: anim }],
+                    backgroundColor: '#FFD600',
+                  },
+                ]}
+              />
+            ))}
+          </View>
+        )}
+        <Text style={styles.tileText} numberOfLines={2}>{item.title}</Text>
+      </ImageBackground>
+    </Pressable>
+  );
+};
 
 export default function SoundsScreen() {
   const { width } = Dimensions.get('window');
   const insets = useSafeAreaInsets();
-  const router = useRouter();
+  const audio = useAudioPlayer();
   const TILE_SIZE = useMemo(
     () => Math.floor((width - H_PADDING * 2 - GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS),
     [width]
   );
+
+  const handleTilePress = async (id: string) => {
+    const isRain = Object.keys(RAIN_AUDIO_MAP).includes(id);
+    if (isRain) {
+      audio.toggle(id, RAIN_AUDIO_MAP[id]);
+      Haptics.selectionAsync();
+    }
+  };
 
   const sections = SOUND_SECTIONS.map(section => {
     // Split into rows
@@ -79,7 +167,13 @@ export default function SoundsScreen() {
               }}
             >
               {item.map((sound: SoundItem) => (
-                <SoundTile key={sound.id} item={sound} size={TILE_SIZE} />
+                <SoundTile
+                  key={sound.id}
+                  item={sound}
+                  size={TILE_SIZE}
+                  selected={audio.selectedIds.includes(sound.id)}
+                  onPress={handleTilePress}
+                />
               ))}
               {item.length < NUM_COLUMNS &&
                 Array.from({ length: NUM_COLUMNS - item.length }).map((_, i) => (
@@ -128,6 +222,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
+    borderWidth: 0,
+    borderColor: 'transparent',
   },
   tileBg: { flex: 1, justifyContent: 'flex-end' },
   tileBgImage: { borderRadius: 18 },
@@ -140,5 +236,25 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0,0,0,0.25)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
+  },
+  soundBarsContainer: {
+    position: 'absolute',
+    top: '50%',
+    left: 0,
+    right: 0,
+    transform: [{ translateY: -11 }],
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+    height: 22,
+    zIndex: 2,
+    pointerEvents: 'none',
+  },
+  soundBar: {
+    width: 4,
+    height: 18,
+    marginHorizontal: 2,
+    borderRadius: 2,
+    backgroundColor: '#FFD600',
   },
 });

@@ -11,14 +11,12 @@ export const SOUND_SECTIONS: SoundSection[] = [
     title: 'Rain',
     emoji: '🌧️',
     data: [
-      { id: 'spring-rain', title: 'Spring Rain', image: 'https://images.unsplash.com/photo-1527766833261-b9ad6c0fbf36?q=80&w=800', category: 'Rain' },
-      { id: 'rainy-day', title: 'Rainy Day', image: 'https://images.unsplash.com/photo-1496034663057-6245f11be793?q=80&w=800', category: 'Rain' },
       { id: 'heavy-rain', title: 'Heavy Rain', image: 'https://images.unsplash.com/photo-1503435824048-a799a3a84bf7?q=80&w=800', category: 'Rain' },
-      { id: 'rain-on-car', title: 'Rain on Car', image: 'https://images.unsplash.com/photo-1502882705085-6c76b9cda7e0?q=80&w=800', category: 'Rain' },
-      { id: 'rain-on-roof', title: 'Rain on Roof', image: 'https://images.unsplash.com/photo-1472162072942-cd5147eb3902?q=80&w=800', category: 'Rain' },
       { id: 'light-rain', title: 'Light Rain', image: 'https://images.unsplash.com/photo-1496024840928-4c417adf211d?q=80&w=800', category: 'Rain' },
-      { id: 'storm', title: 'Storm', image: 'https://images.unsplash.com/photo-1461511669078-d46bf351cd6e?q=80&w=800', category: 'Rain' },
-      { id: 'umbrella', title: 'Umbrella', image: 'https://images.unsplash.com/photo-1460353581641-37baddab0fa2?q=80&w=800', category: 'Rain' },
+      { id: 'thunder-rain', title: 'Thunder Rain', image: 'https://images.unsplash.com/photo-1460353581641-37baddab0fa2?q=80&w=800', category: 'Rain' },
+      { id: 'forrest-rain', title: 'Forest Rain', image: 'https://images.unsplash.com/photo-1461511669078-d46bf351cd6e?q=80&w=800', category: 'Rain' },
+      { id: 'car-rain', title: 'Car Rain', image: 'https://images.unsplash.com/photo-1502882705085-6c76b9cda7e0?q=80&w=800', category: 'Rain' },
+      { id: 'roof-rain', title: 'Roof Rain', image: 'https://images.unsplash.com/photo-1472162072942-cd5147eb3902?q=80&w=800', category: 'Rain' },
     ],
   },
   {
