@@ -85,7 +85,7 @@ function TabLayoutInner() {
             }
           }
         }}
-        onOptions={() => {}}
+  onOptions={() => router.push('/mixer')}
         onTimer={() => router.push('/timer')}
         showBadge={true}
       />

@@ -28,8 +28,14 @@ const MIXES = {
 };
 
 export default function MixDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams();
   const router = useRouter();
+  let id: string | undefined;
+  if (typeof params.id === 'string') {
+    id = params.id;
+  } else if (Array.isArray(params.id)) {
+    id = params.id[0];
+  }
   const mix = id && MIXES[id as keyof typeof MIXES];
 
   if (!mix) {
@@ -45,7 +51,7 @@ export default function MixDetailScreen() {
 
   return (
     <LinearGradient
-      colors={mix.gradient}
+      colors={mix.gradient as any}
       style={StyleSheet.absoluteFill}
       start={{ x: 0.5, y: 0 }}
       end={{ x: 0.5, y: 1 }}

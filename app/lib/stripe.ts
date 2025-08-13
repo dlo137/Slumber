@@ -13,3 +13,7 @@ export const SUBSCRIPTION_PLANS = {
     interval: 'year',
   },
 };
+
+export default function StripeLib() {
+  return null;
+}

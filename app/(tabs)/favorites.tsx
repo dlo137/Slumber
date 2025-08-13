@@ -1,7 +1,7 @@
-
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useRef, useState } from 'react';
 import { Animated, FlatList, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,6 +11,15 @@ type FavoriteMix = {
   title: string;
   emojis: string[];
   gradient: [string, string];
+  soundIds?: string[];
+  volumes?: Record<string, number>;
+  tracks?: Array<{
+    id: string;
+    title: string;
+    image: string;
+    volume: number;
+    category: string;
+  }>;
 };
 
 const SEED_MIXES: FavoriteMix[] = [
@@ -54,22 +63,60 @@ export default function FavoritesScreen() {
     }
   });
 
+  // Load user mixes from AsyncStorage whenever screen is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      const FAVORITES_KEY = 'user_favorite_mixes';
+      const loadUserMixes = async () => {
+        try {
+          const stored = await AsyncStorage.getItem(FAVORITES_KEY);
+          const userMixes = stored ? JSON.parse(stored) : [];
+          if (userMixes.length > 0) {
+            setMixes([...SEED_MIXES, ...userMixes]);
+          } else {
+            setMixes(SEED_MIXES);
+          }
+        } catch {
+          setMixes(SEED_MIXES);
+        }
+      };
+      loadUserMixes();
+    }, [])
+  );
+
   const CARD_HEIGHT = 104;
   const CARD_MARGIN = 10;
   const H_PADDING = 16;
 
   const handleDelete = useCallback((id: string) => {
     setDeletingId(id);
+    // Remove from state immediately for instant UI feedback
+    setMixes(m => {
+      const updated = m.filter(mix => mix.id !== id);
+      // Remove from AsyncStorage only if it's a user mix (not seed)
+      const isSeed = SEED_MIXES.some(seed => seed.id === id);
+      if (!isSeed) {
+        const FAVORITES_KEY = 'user_favorite_mixes';
+        AsyncStorage.getItem(FAVORITES_KEY).then(stored => {
+          if (stored) {
+            const userMixes = JSON.parse(stored);
+            const newUserMixes = userMixes.filter((mix: any) => mix.id !== id);
+            AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(newUserMixes));
+          }
+        });
+      }
+      return updated;
+    });
+    // Animate for visual feedback
     Animated.parallel([
       Animated.timing(animRefs.current[id], {
         toValue: 0,
         duration: 250,
         useNativeDriver: true,
       }),
-    ]).start(() => {
-      setMixes(m => m.filter(mix => mix.id !== id));
-      setDeletingId(null);
-    });
+    ]).start();
+    // Clear deletingId after animation duration
+    setTimeout(() => setDeletingId(null), 250);
   }, []);
 
   const renderItem = useCallback(({ item }: { item: FavoriteMix }) => {
@@ -84,8 +131,19 @@ export default function FavoritesScreen() {
       >
         <Pressable
           onPress={() => {
-            if (editing) return;
-            router.push({ pathname: '/mix/[id]', params: { id: item.id } });
+            if (editing) {
+              handleDelete(item.id);
+            } else if (item.soundIds && item.volumes) {
+              router.push({
+                pathname: '/mixer',
+                params: {
+                  mixId: item.id,
+                  soundIds: JSON.stringify(item.soundIds),
+                  volumes: JSON.stringify(item.volumes),
+                  tracks: item.tracks ? JSON.stringify(item.tracks) : undefined,
+                },
+              });
+            }
           }}
           style={({ pressed }) => [
             cardStyles.card,
@@ -117,21 +175,16 @@ export default function FavoritesScreen() {
             {editing ? (
               <Pressable
                 onPress={() => handleDelete(item.id)}
-                style={({ pressed }) => [cardStyles.iconButton, pressed && { opacity: 0.7, transform: [{ scale: 0.92 }] }]}
+                style={({ pressed }) => [cardStyles.iconButton, { backgroundColor: '#FF4C4C' }, pressed && { opacity: 0.7, transform: [{ scale: 0.92 }] }]}
                 accessibilityRole="button"
                 accessibilityLabel={`Delete ${item.title}`}
               >
-                <Ionicons name="trash-outline" size={24} color="#fff" />
+                <Ionicons name="close" size={28} color="#fff" />
               </Pressable>
             ) : (
-              <Pressable
-                onPress={() => router.push({ pathname: '/mix/[id]', params: { id: item.id } })}
-                style={({ pressed }) => [cardStyles.iconButton, pressed && { opacity: 0.7, transform: [{ scale: 0.92 }] }]}
-                accessibilityRole="button"
-                accessibilityLabel={`Play ${item.title}`}
-              >
+              <View style={cardStyles.iconButton}>
                 <Ionicons name="play" size={28} color="#181A2A" />
-              </Pressable>
+              </View>
             )}
           </View>
         </Pressable>
@@ -184,6 +237,7 @@ export default function FavoritesScreen() {
           removeClippedSubviews
           getItemLayout={getItemLayout}
           extraData={editing}
+          key={mixes.map(m => m.id).join('-')}
         />
       </SafeAreaView>
     </View>

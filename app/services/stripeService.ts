@@ -11,12 +11,14 @@ export interface PaymentIntent {
   trial_days?: number;
 }
 
+
 export interface Subscription {
   id: string;
   status: string;
   current_period_end: number;
   cancel_at_period_end: boolean;
 }
+
 
 export class StripeService {
   // Create a payment intent for subscription
@@ -48,6 +50,9 @@ export class StripeService {
       throw error;
     }
   }
+
+
+
 
   // Create a subscription
   static async createSubscription(
@@ -185,4 +190,8 @@ export class StripeService {
       throw error;
     }
   }
+}
+
+export default function StripeServiceComponent() {
+  return null;
 }

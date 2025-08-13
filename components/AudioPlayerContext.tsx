@@ -13,7 +13,20 @@ export type AudioPlayerState = {
   setVolume: (id: string, volume: number) => Promise<void>;
   toggle: (id: string, source: any) => void;
   setSleepTimer: (ms: number) => void;
+  remove: (id: string) => Promise<void>;
+  clearAll: () => Promise<void>;
+  playAll: () => Promise<void>;
+  pauseAll: () => Promise<void>;
+  setSelectedIds: (ids: string[]) => void;
 };
+  // ...existing code...
+  // ...existing code...
+  // ...existing code...
+  // ...existing code...
+
+
+
+
   // ...
 
 
@@ -28,6 +41,10 @@ export const useAudioPlayer = () => {
 
 export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  // Allow external restoration of selected sound IDs
+  const setSelectedIdsExternal = useCallback((ids: string[]) => {
+    setSelectedIds(ids);
+  }, []);
   const [isPlaying, setIsPlaying] = useState(false);
   const soundRefs = useRef<Record<string, Audio.Sound>>({});
   const sleepTimerRef = useRef<any>(null);
@@ -73,7 +90,7 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     Haptics.selectionAsync();
   }, []);
 
-  const pause = useCallback(async (id: string) => {
+  const pauseSound = useCallback(async (id: string) => {
     if (soundRefs.current[id]) {
       await soundRefs.current[id].pauseAsync();
     }
@@ -111,11 +128,11 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const toggle = useCallback((id: string, source: any) => {
     if (selectedIds.includes(id)) {
       // If already playing, pause instead of stop
-      pause(id);
+      pauseSound(id);
     } else {
       play(id, source);
     }
-  }, [selectedIds, play, pause]);
+  }, [selectedIds, play, pauseSound]);
 
   const setSleepTimer = useCallback((ms: number) => {
     if (sleepTimerRef.current) clearTimeout(sleepTimerRef.current);
@@ -135,8 +152,43 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     };
   }, []);
 
+  // --- Helpers for Mixer ---
+  // Define as plain functions in the correct closure, just before return
+  const remove = useCallback(async (id: string) => {
+    try {
+      await stop(id);
+    } catch {
+      // fallback: forcibly remove from refs and selectedIds
+      if (soundRefs.current[id]) {
+        try {
+          await soundRefs.current[id].stopAsync();
+          await soundRefs.current[id].unloadAsync();
+        } catch {}
+        delete soundRefs.current[id];
+      }
+      setSelectedIds((prev: string[]) => prev.filter((x) => x !== id));
+    }
+  }, [stop]);
+
+  const clearAll = useCallback(() => {
+    return stopAll();
+  }, [stopAll]);
+
+  const playAll = useCallback(async () => {
+    // This is a stub; actual implementation should map id to source
+    // for (const id of selectedIds) { ... }
+    setIsPlaying(true);
+  }, [setIsPlaying, selectedIds]);
+
+  const pauseAll = useCallback(async () => {
+    for (const id of selectedIds) {
+      await pauseSound(id);
+    }
+    setIsPlaying(false);
+  }, [selectedIds, pauseSound, setIsPlaying]);
+
   return (
-    <AudioPlayerContext.Provider value={{ selectedIds, isPlaying, play, pause, stop, stopAll, forceStopAll, setVolume, toggle, setSleepTimer }}>
+  <AudioPlayerContext.Provider value={{ selectedIds, isPlaying, play, pause: pauseSound, stop, stopAll, forceStopAll, setVolume, toggle, setSleepTimer, remove, clearAll, playAll, pauseAll, setSelectedIds: setSelectedIdsExternal }}>
       {children}
     </AudioPlayerContext.Provider>
   );
