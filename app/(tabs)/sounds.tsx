@@ -3,14 +3,58 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { useMemo } from 'react';
 import { Animated, Dimensions, Easing, ImageBackground, Platform, Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import campfire from '../../assets/sounds/fire/campfire.mp3';
+import fireplace from '../../assets/sounds/fire/fireplace.mp3';
+import birds from '../../assets/sounds/nature/birds.mp3';
+import forest from '../../assets/sounds/nature/forest.mp3';
+import leaves from '../../assets/sounds/nature/leaves.mp3';
+import night from '../../assets/sounds/nature/night.mp3';
+import snow from '../../assets/sounds/nature/snowstorm.mp3';
+import wind from '../../assets/sounds/nature/wind.mp3';
+import hz285 from '../../assets/sounds/noise/285-hz.mp3';
+import hz432 from '../../assets/sounds/noise/432-hz.mp3';
+import hz528 from '../../assets/sounds/noise/528-hz.mp3';
+import alphaWaves from '../../assets/sounds/noise/alpha-waves.mp3';
+import betaWaves from '../../assets/sounds/noise/beta-waves.mp3';
+import blueNoise from '../../assets/sounds/noise/blue-noise.mp3';
+import brownNoise from '../../assets/sounds/noise/brown-noise.mp3';
+import thetaWaves from '../../assets/sounds/noise/theta-wave.mp3';
+import whiteNoise from '../../assets/sounds/noise/white-noise.mp3';
 import carRain from '../../assets/sounds/rain/car-rain.mp3';
 import forrestRain from '../../assets/sounds/rain/forrest-rain.mp3';
 import heavyRain from '../../assets/sounds/rain/heavy-rain.mp3';
 import lightRain from '../../assets/sounds/rain/light-rain.mp3';
 import roofRain from '../../assets/sounds/rain/roof-rain.mp3';
 import thunderRain from '../../assets/sounds/rain/thunder-rain.mp3';
+import lake from '../../assets/sounds/water/lake.mp3';
+import ocean from '../../assets/sounds/water/ocean.mp3';
+import river from '../../assets/sounds/water/river.mp3';
+import shore from '../../assets/sounds/water/shore.mp3';
+import underwater from '../../assets/sounds/water/underwater.mp3';
+import waterfall from '../../assets/sounds/water/waterfall.mp3';
 import { useAudioPlayer } from '../../components/AudioPlayerContext';
-import { SOUND_SECTIONS, SoundItem } from '../../constants/sounds';
+import { IMAGE_MAP, SOUND_SECTIONS, SoundItem } from '../../constants/sounds';
+const FIRE_AUDIO_MAP: Record<string, any> = {
+  'campfire': campfire,
+  'fireplace': fireplace,
+};
+
+const NATURE_AUDIO_MAP: Record<string, any> = {
+  'birds': birds,
+  'snow': snow,
+  'night': night,
+  'forest-night': forest,
+  'wind': wind,
+  'leaves': leaves,
+};
+const WATER_AUDIO_MAP: Record<string, any> = {
+  'sea': ocean,
+  'lake-shore': shore,
+  'waves-3d': river,
+  'waterfall': lake,
+  'sea-shore': waterfall,
+  'beach': underwater,
+};
 
 const H_PADDING = 16;
 const GAP = 12;
@@ -30,6 +74,18 @@ const RAIN_AUDIO_MAP: Record<string, any> = {
   'forrest-rain': forrestRain,
   'car-rain': carRain,
   'roof-rain': roofRain,
+};
+
+const NOISE_AUDIO_MAP: Record<string, any> = {
+  'white-noise': whiteNoise,
+  'brown-noise': brownNoise,
+  'blue-noise': blueNoise,
+  'alpha-waves': alphaWaves,
+  'beta-waves': betaWaves,
+  'theta-waves': thetaWaves,
+  '285-hz': hz285,
+  '432-hz': hz432,
+  '528-hz': hz528,
 };
 
 const BAR_COUNT = 5;
@@ -69,6 +125,15 @@ const SoundTile: React.FC<SoundTileProps> = ({ item, size, selected, onPress }) 
     };
   }, [selected]);
 
+  // Robust local/remote image resolver
+  // IMAGE_MAP must be imported from constants/sounds
+  // If not imported, add: import { IMAGE_MAP } from '../../constants/sounds';
+  const imgSource = typeof item.image !== 'string'
+    ? item.image
+    : item.image.startsWith('http')
+      ? { uri: item.image }
+      : IMAGE_MAP[item.id];
+
   return (
     <Pressable
       onPress={() => onPress(item.id)}
@@ -79,7 +144,7 @@ const SoundTile: React.FC<SoundTileProps> = ({ item, size, selected, onPress }) 
       hitSlop={8}
     >
       <ImageBackground
-        source={{ uri: item.image }}
+        source={imgSource}
         style={styles.tileBg}
         imageStyle={styles.tileBgImage}
         resizeMode="cover"
@@ -121,15 +186,29 @@ export default function SoundsScreen() {
 
   const handleTilePress = async (id: string) => {
     const isRain = Object.keys(RAIN_AUDIO_MAP).includes(id);
-    if (isRain) {
-      if (audio.selectedIds.includes(id)) {
-        // Always unselect/stop if already selected
-        audio.stop(id);
-      } else {
+    const isNoise = Object.keys(NOISE_AUDIO_MAP).includes(id);
+    const isWater = Object.keys(WATER_AUDIO_MAP).includes(id);
+    const isFire = Object.keys(FIRE_AUDIO_MAP).includes(id);
+    const isNature = Object.keys(NATURE_AUDIO_MAP).includes(id);
+    if (audio.selectedIds.includes(id)) {
+      audio.stop(id);
+    } else {
+      if (isRain) {
         audio.play(id, RAIN_AUDIO_MAP[id]);
+      } else if (isNoise) {
+        audio.play(id, NOISE_AUDIO_MAP[id]);
+      } else if (isWater) {
+        audio.play(id, WATER_AUDIO_MAP[id]);
+      } else if (isFire) {
+        audio.play(id, FIRE_AUDIO_MAP[id]);
+      } else if (isNature) {
+        audio.play(id, NATURE_AUDIO_MAP[id]);
+      } else {
+        // For non-audio tiles, toggle selection
+        audio.setSelectedIds([...audio.selectedIds, id]);
       }
-      Haptics.selectionAsync();
     }
+    Haptics.selectionAsync();
   };
 
   const sections = SOUND_SECTIONS.map(section => {
@@ -137,10 +216,10 @@ export default function SoundsScreen() {
     const rows = Array.from({ length: Math.ceil(section.data.length / NUM_COLUMNS) }, (_, i) =>
       section.data.slice(i * NUM_COLUMNS, i * NUM_COLUMNS + NUM_COLUMNS)
     );
-    // Only keep the first two rows
+    // Show all rows
     return {
       ...section,
-      data: rows.slice(0, 2),
+      data: rows,
     };
   });
 

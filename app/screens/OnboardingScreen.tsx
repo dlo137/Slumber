@@ -238,7 +238,7 @@ export default function OnboardingScreen() {
   );
   const SuggestionsStep = () => (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.suggScroll} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.suggScroll, { marginTop: 40 }]} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.suggHeader}>
           <Text style={styles.emojiBadge}>😴</Text>
@@ -318,19 +318,27 @@ const TrialTeaserStep = () => {
         colors={['rgba(0,0,0,0.25)', 'rgba(0,0,0,0.75)']}
         style={StyleSheet.absoluteFill}
       />
-      {step > 0 && <View style={[styles.progressBar, { width: `${progress * 100}%` }]} />}
-  {step === 0 && WelcomeStep()}
-  {step === 1 && NameStep()}
-  {step === 2 && BedtimeStep()}
-  {step === 3 && SuggestionsStep()}
-  {step === 4 && <TrialTeaserStep />}
+      {step > 0 && (
+        <View style={styles.progressBarContainer}>
+          <View style={styles.progressBarBackground} />
+          <View style={[styles.progressBar, { width: `${progress * 100}%` }]} />
+        </View>
+      )}
+
+      <View style={{ flex: 1, width: '100%' }}>
+        {step === 0 && WelcomeStep()}
+        {step === 1 && NameStep()}
+        {step === 2 && BedtimeStep()}
+        {step === 3 && SuggestionsStep()}
+        {step === 4 && <TrialTeaserStep />}
+      </View>
     </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
 // ...existing code...
-  suggScroll: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 24, gap: 12 },
+  suggScroll: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 24, gap: 1.8 },
   suggHeader: { alignItems: 'center', gap: 8, marginTop: 8 },
   emojiBadge: { fontSize: 28, marginBottom: 4 },
   suggH1: { color:'#fff', fontSize:22, fontWeight: '800', textAlign:'center', lineHeight:28 },
@@ -344,15 +352,36 @@ const styles = StyleSheet.create({
   a: { color:'rgba(255,255,255,0.85)', fontSize:15, lineHeight:21 },
   bg: { flex: 1 },
   bgImage: {},
-  progressBar: {
+  progressBarContainer: {
     position: 'absolute',
     top: 82,
-    left: '7%',
-    height: 4,
     width: '75%',
+    height: 4,
+    borderRadius: 2,
+    overflow: 'hidden',
+    zIndex: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+  },
+  progressBarBackground: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    width: '100%',
+    height: 4,
+    backgroundColor: '#E0E0E0', // light gray
+    borderRadius: 2,
+    zIndex: 1,
+  },
+  progressBar: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    height: 4,
     backgroundColor: '#FFD59E',
     borderRadius: 2,
-    zIndex: 10,
+    zIndex: 2,
   },
   safe: {
     flex: 1,
