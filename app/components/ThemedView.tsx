@@ -5,13 +5,15 @@ interface ThemedViewProps extends ViewProps {
   children: React.ReactNode;
 }
 
-export const ThemedView: React.FC<ThemedViewProps> = ({ style, children, ...props }) => {
+const ThemedView: React.FC<ThemedViewProps> = ({ style, children, ...props }) => {
   return (
     <View style={[styles.default, style]} {...props}>
       {children}
     </View>
   );
 };
+
+export default ThemedView;
 
 const styles = StyleSheet.create({
   default: {

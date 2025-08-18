@@ -27,7 +27,10 @@ function TabLayoutInner() {
           tabBarStyle: {
             backgroundColor: '#18123A',
             borderTopWidth: 0,
-            height: 64 + insets.bottom,
+            height: 52 + insets.bottom,
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingTop: 14,
           },
           tabBarActiveTintColor: '#FFD700',
           tabBarInactiveTintColor: '#E7E7F7',

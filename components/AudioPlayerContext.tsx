@@ -5,7 +5,7 @@ import React, { createContext, useCallback, useContext, useRef, useState } from 
 export type AudioPlayerState = {
   selectedIds: string[];
   isPlaying: boolean;
-  play: (id: string, source: any) => void;
+  play: (id: string, source: any, volume?: number) => void;
   pause: (id: string) => void;
   stop: (id: string) => void;
   stopAll: () => void;
@@ -77,18 +77,25 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     console.log('[AudioPlayerContext] forceStopAll finished. selectedIds:', [], 'isPlaying:', false);
   }, []);
 
-  const play = useCallback(async (id: string, source: any) => {
-    if (soundRefs.current[id]) {
-      await soundRefs.current[id].playAsync();
-    } else {
-      const { sound } = await Audio.Sound.createAsync(source, { isLooping: true, shouldPlay: true });
-      soundRefs.current[id] = sound;
-      await sound.playAsync();
-    }
-    setSelectedIds((prev) => prev.includes(id) ? prev : [...prev, id]);
-    setIsPlaying(true);
-    Haptics.selectionAsync();
-  }, []);
+  const play = useCallback(
+    async (id: string, source: any, volume?: number) => {
+      if (soundRefs.current[id]) {
+        if (typeof volume === 'number') {
+          await soundRefs.current[id].setVolumeAsync(volume);
+        }
+        await soundRefs.current[id].playAsync();
+      } else {
+        const { sound } = await Audio.Sound.createAsync(source, { isLooping: true, shouldPlay: false });
+        soundRefs.current[id] = sound;
+        if (typeof volume === 'number') {
+          await sound.setVolumeAsync(volume);
+        }
+        await sound.playAsync();
+      }
+      setSelectedIds((prev) => prev.includes(id) ? prev : [...prev, id]);
+      setIsPlaying(true);
+      Haptics.selectionAsync();
+    }, []);
 
   const pauseSound = useCallback(async (id: string) => {
     if (soundRefs.current[id]) {

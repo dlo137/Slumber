@@ -30,6 +30,14 @@ export default function OnboardingScreen() {
   const [time, setTime] = useState(new Date(0,0,0,23,0));
   const [showTimePicker, setShowTimePicker] = useState(false);
   const nameInputRef = useRef(null);
+    const { play, stop } = require('@/components/AudioPlayerContext').useAudioPlayer();
+  
+    useEffect(() => {
+      play('ocean', require('@/assets/sounds/water/ocean.mp3'));
+      return () => {
+        stop('ocean');
+      };
+    }, []);
 
   // Helper to format time as h:mm AM/PM
   const formatTime = (date: Date) => {
@@ -98,56 +106,198 @@ export default function OnboardingScreen() {
         </View>
         <Text style={styles.sub}>Your journey to better sleep starts here. Let’s set up your profile.</Text>
       </View>
-      <TouchableOpacity
-        activeOpacity={0.9}
-        style={styles.cta}
-        onPress={() => setStep(1)}
-        accessibilityRole="button"
-        accessibilityLabel="Let's Go"
-      >
-        <Text style={styles.ctaText}>Let's Go</Text>
-      </TouchableOpacity>
+      <View style={{ marginBottom: 24 }}>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={styles.cta}
+          onPress={() => setStep(1)}
+          accessibilityRole="button"
+          accessibilityLabel="Let's Go"
+        >
+          <Text style={styles.ctaText}>Let's Go</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => router.push('/login')}
+          style={{ alignSelf: 'center' }}
+          accessibilityRole="link"
+          accessibilityLabel="Already a member? Log in"
+        >
+          <Text style={{ color: '#FFD59E', fontSize: 16, fontWeight: '700' }}>Already a member?</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 
-  // Step 1: Name
-  const NameStep = () => (
+
+  // Step 1: Sign Up (Name, Email, Password)
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Supabase sign up logic
+  async function handleSignUp() {
+    setError('');
+    if (name.trim().length < 2) {
+      setError('Please enter your name.');
+      return;
+    }
+    if (!email.match(/^\S+@\S+\.\S+$/)) {
+      setError('Please enter a valid email.');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const { supabase } = require('@/lib/supabase');
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { name: name.trim() } }
+      });
+      if (signUpError) {
+        setError(signUpError.message);
+        setLoading(false);
+        return;
+      }
+      const user = data.user;
+      if (user) {
+        // Upsert profile in 'profiles' table
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert([
+            {
+              id: user.id,
+              email: email.trim(),
+              first_name: name.trim(),
+              // add other fields as needed
+            }
+          ]);
+        if (profileError) {
+          setError(profileError.message);
+          setLoading(false);
+          return;
+        }
+      }
+      await AsyncStorage.setItem('profile.name', name.trim());
+      await AsyncStorage.setItem('profile.email', email.trim());
+      setLoading(false);
+      setStep(2);
+    } catch (e) {
+      setError('Sign up failed. Please try again.');
+      setLoading(false);
+    }
+  }
+
+  const SignUpStep = () => (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={{ flex: 1 }}
     >
       <SafeAreaView style={styles.safe}>
-  <View style={[styles.topContent, { justifyContent: 'center', marginTop: 0, flex: 1 }]}>
+        <View style={[styles.topContent, { justifyContent: 'center', marginTop: 0, flex: 1 }]}>
           <Text style={styles.h1}>Hello!</Text>
-          <Text style={styles.h2}>What’s your name?</Text>
-          <TextInput
-            ref={nameInputRef}
-            style={styles.input}
-            placeholder="Your name"
-            placeholderTextColor="rgba(255,255,255,0.5)"
-            value={name}
-            onChangeText={setName}
-            keyboardType="default"
-            autoCapitalize="words"
-            accessibilityRole="text"
-            accessibilityLabel="Your name"
-            returnKeyType="done"
-          />
+          <Text style={styles.h2}>Let's gets started</Text>
+          <View style={{ width: '100%', alignItems: 'center' }}>
+            <TextInput
+              ref={nameInputRef}
+              style={[styles.input, { marginTop: 0, marginBottom: 10 }]}
+              placeholder="Your name"
+              placeholderTextColor="rgba(255,255,255,0.5)"
+              value={name}
+              onChangeText={setName}
+              keyboardType="default"
+              autoCapitalize="words"
+              accessibilityRole="text"
+              accessibilityLabel="Your name"
+              returnKeyType="next"
+            />
+            <TextInput
+              style={[styles.input, { marginTop: 0, marginBottom: 10 }]}
+              placeholder="Email address"
+              placeholderTextColor="rgba(255,255,255,0.5)"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              accessibilityRole="text"
+              accessibilityLabel="Email address"
+              returnKeyType="next"
+            />
+            <View style={{ width: '90%', alignSelf: 'center', position: 'relative', marginBottom: 10 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 16, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.18)' }}>
+                <TextInput
+                  style={[styles.input, { flex: 1, marginTop: 0, marginBottom: 0, borderWidth: 0, backgroundColor: 'rgba(255,255,255,0.08)', paddingRight: 0 }]}
+                  placeholder="Password"
+                  placeholderTextColor="rgba(255,255,255,0.5)"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  accessibilityRole="text"
+                  accessibilityLabel="Password"
+                  returnKeyType="next"
+                  autoComplete="password"
+                  textContentType="password"
+                />
+                <TouchableOpacity
+                  style={{ paddingHorizontal: 12, height: 52, justifyContent: 'center', alignItems: 'center' }}
+                  onPress={() => setShowPassword(v => !v)}
+                  accessibilityRole="button"
+                  accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={22} color="#FFD59E" />
+                </TouchableOpacity>
+              </View>
+            </View>
+            <View style={{ width: '90%', alignSelf: 'center', position: 'relative', marginBottom: 10 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 16, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.18)' }}>
+                <TextInput
+                  style={[styles.input, { flex: 1, marginTop: 0, marginBottom: 0, borderWidth: 0, backgroundColor: 'rgba(255,255,255,0.08)', paddingRight: 0 }]}
+                  placeholder="Confirm password"
+                  placeholderTextColor="rgba(255,255,255,0.5)"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry={!showConfirmPassword}
+                  accessibilityRole="text"
+                  accessibilityLabel="Confirm password"
+                  returnKeyType="done"
+                  autoComplete="password"
+                  textContentType="password"
+                />
+                <TouchableOpacity
+                  style={{ paddingHorizontal: 12, height: 52, justifyContent: 'center', alignItems: 'center' }}
+                  onPress={() => setShowConfirmPassword(v => !v)}
+                  accessibilityRole="button"
+                  accessibilityLabel={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                >
+                  <Ionicons name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'} size={22} color="#FFD59E" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+          {error ? (
+            <Text style={{ color: '#F87171', fontWeight: '700', marginTop: 8, textAlign: 'center' }}>{error}</Text>
+          ) : null}
         </View>
         <TouchableOpacity
           activeOpacity={0.9}
-          style={[styles.cta, name.trim().length < 2 && { opacity: 0.5 }]}
-          onPress={async () => {
-            if (name.trim().length >= 2) {
-              await AsyncStorage.setItem('profile.name', name.trim());
-              setStep(2);
-            }
-          }}
+          style={[styles.cta, (loading || name.trim().length < 2 || !email.match(/^\S+@\S+\.\S+$/) || password.length < 6 || password !== confirmPassword) && { opacity: 0.5 }]}
+          onPress={handleSignUp}
           accessibilityRole="button"
-          accessibilityLabel="Continue"
-          disabled={name.trim().length < 2}
+          accessibilityLabel="Sign Up"
+          disabled={loading || name.trim().length < 2 || !email.match(/^\S+@\S+\.\S+$/) || password.length < 6 || password !== confirmPassword}
         >
-          <Text style={styles.ctaText}>Continue</Text>
+          <Text style={styles.ctaText}>{loading ? 'Signing Up...' : 'Sign Up & Continue'}</Text>
         </TouchableOpacity>
       </SafeAreaView>
     </KeyboardAvoidingView>
@@ -256,7 +406,6 @@ export default function OnboardingScreen() {
           ))}
         </View>
 
-        <Text style={styles.sectionHint}>You’re in good hands</Text>
 
         {/* Sleeping Sounds 101 */}
         <Text style={styles.s101Title}>Sleeping Sounds 101</Text>
@@ -327,7 +476,7 @@ const TrialTeaserStep = () => {
 
       <View style={{ flex: 1, width: '100%' }}>
         {step === 0 && WelcomeStep()}
-        {step === 1 && NameStep()}
+        {step === 1 && SignUpStep()}
         {step === 2 && BedtimeStep()}
         {step === 3 && SuggestionsStep()}
         {step === 4 && <TrialTeaserStep />}
@@ -520,7 +669,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFD59E',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 24,
+    marginBottom: 15,
     shadowColor: '#000',
     shadowOpacity: 0.2,
     shadowRadius: 10,

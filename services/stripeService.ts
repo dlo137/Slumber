@@ -11,7 +11,6 @@ export interface PaymentIntent {
   trial_days?: number;
 }
 
-
 export interface Subscription {
   id: string;
   status: string;
@@ -19,9 +18,9 @@ export interface Subscription {
   cancel_at_period_end: boolean;
 }
 
-
 export class StripeService {
-  // Create a payment intent for subscription
+  // ...existing code...
+  // (full implementation copied from original)
   static async createPaymentIntent(planType: 'weekly' | 'yearly', customerId?: string, freeTrialEnabled?: boolean): Promise<PaymentIntent> {
     try {
       console.log('Creating payment intent for:', planType, 'with free trial:', freeTrialEnabled);
@@ -51,10 +50,6 @@ export class StripeService {
     }
   }
 
-
-
-
-  // Create a subscription
   static async createSubscription(
     planType: typeof SUBSCRIPTION_PLANS[keyof typeof SUBSCRIPTION_PLANS],
     freeTrialEnabled?: boolean
@@ -105,7 +100,6 @@ export class StripeService {
     }
   }
 
-  // Create a free trial subscription
   static async createFreeTrial(planType: 'weekly' | 'yearly', customerId: string): Promise<Subscription> {
     try {
       console.log('StripeService: Creating free trial for plan:', planType, 'customer:', customerId);
@@ -132,7 +126,6 @@ export class StripeService {
     }
   }
 
-  // Get current subscription status
   static async getSubscriptionStatus(): Promise<Subscription | null> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -159,7 +152,6 @@ export class StripeService {
     }
   }
 
-  // Cancel subscription
   static async cancelSubscription(): Promise<boolean> {
     try {
       const { data, error } = await supabase.functions.invoke('cancel-subscription');
@@ -175,7 +167,6 @@ export class StripeService {
     }
   }
 
-  // Restore purchases (for iOS)
   static async restorePurchases(): Promise<Subscription[]> {
     try {
       const { data, error } = await supabase.functions.invoke('restore-purchases');

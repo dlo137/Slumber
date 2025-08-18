@@ -33,3 +33,8 @@ export async function deleteMix(id: string) {
   const mixes = await getUserMixes();
   await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(mixes.filter(m => m.id !== id)));
 }
+
+// Dummy default export to satisfy Expo Router
+
+// Dummy default export to satisfy Expo Router (not a component)
+export default {};

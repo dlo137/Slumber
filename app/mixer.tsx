@@ -20,7 +20,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAudioPlayer } from '../components/AudioPlayerContext';
 import { SoundItem } from '../constants/sounds';
-import { saveMix } from './lib/mixes-storage';
+import { saveMix } from '../lib/mixes-storage';
 
 const PEACH = '#FFDAB9';
 const DARK = '#18123A';
@@ -70,7 +70,7 @@ const TrackRow: React.FC<TrackRowProps> = ({ id, title, image, volume, onVolume,
           <Pressable onPress={handleRemove} accessibilityLabel={`Remove ${title}`} style={styles.removeBtn}>
             <Ionicons name="close" size={22} color="#fff" />
           </Pressable>
-          <Image source={{ uri: image }} style={styles.trackThumb} />
+          <Image source={typeof image === 'string' ? { uri: image } : image} style={styles.trackThumb} />
           <View style={{ flex: 1, marginLeft: 12 }}>
             <Text style={styles.trackTitle}>{title}</Text>
             <Slider
@@ -132,6 +132,8 @@ export default function MixerScreen() {
       Object.entries(pendingVolumes).forEach(([id, v]) => audio.setVolume(id, v as number));
       setHydratedFromParams(true);
       (window as any).__pendingVolumes = undefined;
+  // Auto-play all sounds when hydrated from params (e.g., from favorites)
+  handlePlayAll();
     }
   }, [audio.selectedIds]);
 
@@ -171,25 +173,31 @@ export default function MixerScreen() {
     Haptics.selectionAsync();
   };
 
-  const RAIN_AUDIO_MAP: Record<string, any> = {
-    'heavy-rain': require('../assets/sounds/rain/heavy-rain.mp3'),
-    'light-rain': require('../assets/sounds/rain/light-rain.mp3'),
-    'thunder-rain': require('../assets/sounds/rain/thunder-rain.mp3'),
-    'forrest-rain': require('../assets/sounds/rain/forrest-rain.mp3'),
-    'car-rain': require('../assets/sounds/rain/car-rain.mp3'),
-    'roof-rain': require('../assets/sounds/rain/roof-rain.mp3'),
+  const AUDIO_MAP: Record<string, any> = {
+  'heavy-rain': require('../assets/sounds/rain/heavy-rain.mp3'),
+  'light-rain': require('../assets/sounds/rain/light-rain.mp3'),
+  'thunder-rain': require('../assets/sounds/rain/thunder-rain.mp3'),
+  'forrest-rain': require('../assets/sounds/rain/forrest-rain.mp3'),
+  'car-rain': require('../assets/sounds/rain/car-rain.mp3'),
+  'roof-rain': require('../assets/sounds/rain/roof-rain.mp3'),
+  'campfire': require('../assets/sounds/fire/campfire.mp3'),
+  'fireplace': require('../assets/sounds/fire/fireplace.mp3'),
+  'wind': require('../assets/sounds/nature/wind.mp3'),
+  'shore': require('../assets/sounds/water/shore.mp3'),
   };
 
   const getAudioSource = (id: string) => {
-    if (RAIN_AUDIO_MAP[id]) return RAIN_AUDIO_MAP[id];
-    // Add more mappings for other categories as needed
+    if (AUDIO_MAP[id]) return AUDIO_MAP[id];
     return null;
   };
 
   const handlePlayAll = () => {
     audio.selectedIds.forEach((id) => {
       const source = getAudioSource(id);
-      if (source) audio.play(id, source);
+      if (source) {
+        const volume = volumes[id] !== undefined ? volumes[id] : undefined;
+        audio.play(id, source, volume);
+      }
     });
     Haptics.selectionAsync();
   };
@@ -290,10 +298,26 @@ export default function MixerScreen() {
     for (const section of require('../constants/sounds').SOUND_SECTIONS) {
       allSounds.push(...section.data);
     }
-    const sound = allSounds.find((s) => s.id === id);
+    // Also check for tracks in params if present
+    let sound = allSounds.find((s) => s.id === id);
+    let image;
+    if (!sound && params.tracks) {
+      try {
+        const tracks = typeof params.tracks === 'string' ? JSON.parse(params.tracks) : params.tracks;
+        const track = tracks.find((t: any) => t.id === id);
+        if (track) {
+          sound = track;
+        }
+      } catch {}
+    }
+    if (sound && sound.image) {
+      image = typeof sound.image === 'string' ? { uri: sound.image } : sound.image;
+    } else {
+      image = { uri: 'https://placehold.co/48x48' };
+    }
     return {
       title: sound ? sound.title : id.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
-      image: sound ? sound.image : 'https://placehold.co/48x48',
+      image,
     };
   };
 
@@ -403,7 +427,7 @@ const ToolbarButton: React.FC<ToolbarButtonProps> = ({ icon, label, onPress, act
 const styles = StyleSheet.create({
   gradient: { flex: 1 },
   safe: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', paddingTop: 12, paddingBottom: 12, paddingHorizontal: 16, position: 'relative' },
+  header: { flexDirection: 'row', alignItems: 'center', paddingTop: 24, paddingBottom: 18, paddingHorizontal: 16, position: 'relative' },
   handle: { position: 'absolute', top: 8, left: '50%', marginLeft: -24, width: 48, height: 5, borderRadius: 3, backgroundColor: '#fff', opacity: 0.3 },
   headerTitle: { flex: 1, textAlign: 'center', color: '#fff', fontSize: 22, fontWeight: '600', letterSpacing: 0.5 },
   headerClose: { position: 'absolute', right: 16, top: 8, padding: 8 },

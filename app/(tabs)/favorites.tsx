@@ -28,24 +28,49 @@ const SEED_MIXES: FavoriteMix[] = [
     title: 'Rain Therapy',
     emojis: ['🌧️', '🌊', '🎧'],
     gradient: ['#1F2B6C', '#2E0F4F'],
+    soundIds: ['ocean', 'thunder-rain'],
+    volumes: { ocean: 0.5, 'thunder-rain': 0.5 },
+    tracks: [
+      { id: 'ocean', title: 'Ocean', image: require('../../assets/images/water/ocean.jpg'), volume: 0.5, category: 'Water' },
+      // Use upslash image for thunder-rain to match constants/sounds.ts IMAGE_MAP
+  // Use a safe placeholder image for thunder-rain
+  { id: 'thunder-rain', title: 'Thunderstorm', image: require('../../assets/images/noise/white-noise.jpg'), volume: 0.5, category: 'Rain' },
+    ],
   },
   {
     id: 'campfire',
     title: 'Campfire by the Sea',
     emojis: ['🔥', '🌊', '🎧'],
     gradient: ['#0F3755', '#1D224F'],
+    soundIds: ['campfire', 'shore'],
+    volumes: { campfire: 0.5, shore: 0.5 },
+    tracks: [
+  { id: 'campfire', title: 'Campfire', image: require('../../assets/images/fire/campfire.jpg'), volume: 0.5, category: 'Fire' },
+  { id: 'shore', title: 'Shore', image: require('../../assets/images/water/shore.jpg'), volume: 0.5, category: 'Water' },
+    ],
   },
   {
     id: 'peaceful',
     title: 'Peaceful Camp Night',
     emojis: ['🌙', '🌲', '🔥'],
     gradient: ['#2B5876', '#4E4376'],
+    soundIds: ['night', 'campfire'],
+    volumes: { night: 0.5, campfire: 0.5 },
+    tracks: [
+      { id: 'night', title: 'Night', image: require('../../assets/images/nature/night.webp'), volume: 0.5, category: 'Nature' },
+      { id: 'campfire', title: 'Campfire', image: require('../../assets/images/fire/campfire.jpg'), volume: 0.5, category: 'Fire' },
+    ],
   },
   {
     id: 'cozy',
     title: 'Cozy House Ambience',
     emojis: ['🔥', '☕', '🎧'],
     gradient: ['#1A2980', '#26D0CE'],
+    soundIds: ['fireplace'],
+    volumes: { fireplace: 1 },
+    tracks: [
+      { id: 'fireplace', title: 'Fireplace', image: require('../../assets/images/fire/fireplace.jpeg'), volume: 1, category: 'Fire' },
+    ],
   },
 ];
 
@@ -172,20 +197,32 @@ export default function FavoritesScreen() {
                 ))}
               </View>
             </View>
-            {editing ? (
-              <Pressable
-                onPress={() => handleDelete(item.id)}
-                style={({ pressed }) => [cardStyles.iconButton, { backgroundColor: '#FF4C4C' }, pressed && { opacity: 0.7, transform: [{ scale: 0.92 }] }]}
-                accessibilityRole="button"
-                accessibilityLabel={`Delete ${item.title}`}
-              >
-                <Ionicons name="close" size={28} color="#fff" />
-              </Pressable>
-            ) : (
-              <View style={cardStyles.iconButton}>
-                <Ionicons name="play" size={28} color="#181A2A" />
-              </View>
-            )}
+            <Pressable
+              onPress={() => {
+                if (editing) {
+                  handleDelete(item.id);
+                } else if (item.soundIds && item.volumes) {
+                  router.push({
+                    pathname: '/mixer',
+                    params: {
+                      mixId: item.id,
+                      soundIds: JSON.stringify(item.soundIds),
+                      volumes: JSON.stringify(item.volumes),
+                      tracks: item.tracks ? JSON.stringify(item.tracks) : undefined,
+                    },
+                  });
+                }
+              }}
+              style={({ pressed }) => [
+                cardStyles.iconButton,
+                editing && { backgroundColor: '#FF4C4C' },
+                pressed && { opacity: 0.7, transform: [{ scale: 0.92 }] },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={editing ? `Delete ${item.title}` : `Play ${item.title}`}
+            >
+              <Ionicons name={editing ? 'close' : 'play'} size={28} color={editing ? '#fff' : '#181A2A'} />
+            </Pressable>
           </View>
         </Pressable>
       </Animated.View>
@@ -210,20 +247,19 @@ export default function FavoritesScreen() {
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
       />
-      <SafeAreaView style={{ flex: 1, paddingTop: top + 8 }}>
-        {/* Header */}
-        <View style={cardStyles.headerContainer}>
-          <Text style={cardStyles.headerTitle}>My Favorites</Text>
-          <Pressable
-            onPress={() => setEditing(e => !e)}
-            style={({ pressed }) => [cardStyles.editButton, pressed && { opacity: 0.7, transform: [{ scale: 0.96 }] }]}
-            accessibilityRole="button"
-            accessibilityLabel={editing ? 'Done editing' : 'Edit favorites'}
-          >
-            <Text style={cardStyles.editButtonText}>{editing ? 'Done' : 'Edit'}</Text>
-          </Pressable>
-        </View>
-        {/* List */}
+  <View style={[cardStyles.headerContainer, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }]}> 
+    <Text style={[cardStyles.headerTitle, { flex: 1, textAlign: 'center' }]}>Favorites</Text>
+    <Pressable
+  style={{ paddingHorizontal: 8, paddingVertical: 8, marginRight: 8 }}
+      onPress={() => setEditing(e => !e)}
+      accessibilityRole="button"
+      accessibilityLabel={editing ? "Done Editing" : "Edit Favorites"}
+    >
+      <Ionicons name={editing ? "checkmark" : "create-outline"} size={24} color="#E7E7F7" />
+    </Pressable>
+  </View>
+  <View style={{ height: 0 }} />
+      <SafeAreaView style={{ flex: 1 }}>
         <FlatList
           data={mixes}
           renderItem={renderItem}
@@ -232,7 +268,7 @@ export default function FavoritesScreen() {
           contentContainerStyle={{
             paddingHorizontal: H_PADDING,
             paddingTop: 24,
-            paddingBottom: (bottom || 24) + 24,
+            paddingBottom: (bottom || 12) + 8,
           }}
           removeClippedSubviews
           getItemLayout={getItemLayout}
@@ -249,22 +285,29 @@ const cardStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    minHeight: 56,
+    paddingTop: 57,
+    marginBottom: 2,
     position: 'relative',
-    minHeight: 48,
+    backgroundColor: 'transparent',
+    borderBottomWidth: 1.5,
+    borderBottomColor: 'rgba(255,255,255,0.13)',
   },
   headerTitle: {
     color: '#fff',
-    fontSize: 30,
+    fontSize: 28,
     fontWeight: 'bold',
     textAlign: 'center',
-    flex: 1,
     letterSpacing: 0.5,
+    paddingBottom: 8,
+    marginHorizontal: 'auto',
+    marginLeft: 45,
   },
   editButton: {
     position: 'absolute',
     right: 0,
-    top: 0,
+    top: '50%',
+    transform: [{ translateY: -16 }],
     paddingHorizontal: 18,
     paddingVertical: 8,
     zIndex: 2,

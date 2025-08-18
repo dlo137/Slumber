@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
-import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
 const MIXES = {
   rain: {
@@ -49,6 +49,23 @@ export default function MixDetailScreen() {
     );
   }
 
+  // Helper to get image for each mix
+  const getMixImage = (id: string) => {
+    if (!id) return require('@/assets/images/onboarding-bg.jpg');
+    switch (id) {
+      case 'rain':
+        return require('@/assets/images/rain/forrest-rain.jpg');
+      case 'campfire':
+        return require('@/assets/images/fire/campfire.jpg');
+      case 'peaceful':
+        return require('@/assets/images/nature/night.webp');
+      case 'cozy':
+        return require('@/assets/images/fire/fireplace.jpeg');
+      default:
+        return require('@/assets/images/onboarding-bg.jpg');
+    }
+  };
+
   return (
     <LinearGradient
       colors={mix.gradient as any}
@@ -70,6 +87,13 @@ export default function MixDetailScreen() {
         </View>
         {/* Content */}
         <View style={styles.content}>
+          <View style={{ width: 180, height: 180, borderRadius: 24, overflow: 'hidden', marginBottom: 18 }}>
+            <Image
+              source={getMixImage(id ?? '')}
+              style={{ width: '100%', height: '100%', borderRadius: 24 }}
+              resizeMode="cover"
+            />
+          </View>
           <Text style={styles.title}>{mix.title}</Text>
           <View style={styles.emojiRow}>
             {mix.emojis.map((emoji, i) => (

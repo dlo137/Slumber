@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useMemo } from 'react';
-import { Animated, Dimensions, Easing, ImageBackground, Platform, Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
+import { Animated, Dimensions, Easing, ImageBackground, Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import campfire from '../../assets/sounds/fire/campfire.mp3';
 import fireplace from '../../assets/sounds/fire/fireplace.mp3';
@@ -33,6 +33,7 @@ import shore from '../../assets/sounds/water/shore.mp3';
 import underwater from '../../assets/sounds/water/underwater.mp3';
 import waterfall from '../../assets/sounds/water/waterfall.mp3';
 import { useAudioPlayer } from '../../components/AudioPlayerContext';
+import { Header } from '../../components/Header';
 import { IMAGE_MAP, SOUND_SECTIONS, SoundItem } from '../../constants/sounds';
 const FIRE_AUDIO_MAP: Record<string, any> = {
   'campfire': campfire,
@@ -231,6 +232,8 @@ export default function SoundsScreen() {
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
       />
+  <Header title="Sounds" />
+  <View style={{ height: 0 }} />
       <SectionList
         sections={sections}
         keyExtractor={(_, idx) => String(idx)}
@@ -269,7 +272,7 @@ export default function SoundsScreen() {
         stickySectionHeadersEnabled
         contentContainerStyle={{
           paddingHorizontal: H_PADDING,
-          paddingTop: Platform.OS === 'android' ? 48 : 64,
+          paddingTop: 25,
           paddingBottom: 32 + insets.bottom,
         }}
         showsVerticalScrollIndicator={false}
@@ -279,11 +282,6 @@ export default function SoundsScreen() {
           offset: (TILE_SIZE + GAP) * index,
           index,
         })}
-        ListHeaderComponent={
-          <View style={styles.headerContainer}>
-            <Text style={styles.headerTitle}>Sounds</Text>
-          </View>
-        }
       />
     </View>
   );
@@ -291,8 +289,28 @@ export default function SoundsScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  headerContainer: { alignItems: 'center', marginBottom: 8 },
-  headerTitle: { color: '#fff', fontSize: 32, fontWeight: 'bold', letterSpacing: 0.5 },
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 56,
+    paddingTop: 10,
+    marginBottom: 2,
+    position: 'relative',
+    backgroundColor: 'transparent',
+    borderBottomWidth: 1.5,
+    borderBottomColor: 'rgba(255,255,255,0.13)',
+    marginHorizontal: -16,
+  },
+  headerTitle: {
+    color: '#fff',
+    fontSize: 28,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    flex: 1,
+    letterSpacing: 0.5,
+    paddingBottom: 8,
+  },
   sectionHeader: { backgroundColor: 'transparent', paddingVertical: 6 },
   sectionHeaderText: { color: '#fff', fontSize: 19, fontWeight: '700', paddingLeft: 2 },
   tile: {

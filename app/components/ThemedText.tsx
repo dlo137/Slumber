@@ -6,7 +6,7 @@ interface ThemedTextProps extends TextProps {
   children: React.ReactNode;
 }
 
-export const ThemedText: React.FC<ThemedTextProps> = ({ type = 'default', style, children, ...props }) => {
+const ThemedText: React.FC<ThemedTextProps> = ({ type = 'default', style, children, ...props }) => {
   let textStyle = styles.default;
   if (type === 'title') textStyle = styles.title;
   if (type === 'link') textStyle = styles.link;
@@ -16,6 +16,8 @@ export const ThemedText: React.FC<ThemedTextProps> = ({ type = 'default', style,
     </Text>
   );
 };
+
+export default ThemedText;
 
 const styles = StyleSheet.create({
   default: {

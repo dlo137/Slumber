@@ -1,8 +1,24 @@
+// ...existing code...
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { ImageBackground, StyleSheet, Text, View } from 'react-native';
 import type { FavoriteMix } from '../data/mixes';
+
+// Helper to get onboarding image by mix id
+function getOnboardingImage(id: string) {
+  switch (id) {
+    case 'rain':
+      return require('@/assets/images/onboard/onboard-rain-therapy.jpg');
+    case 'campfire':
+      return require('@/assets/images/onboard/onboard-campfire.jpg');
+    case 'peaceful':
+      return require('@/assets/images/onboard/onboard-campfire-woods.avif');
+    case 'cozy':
+      return require('@/assets/images/onboard/onboard-cozy-house.jpg');
+    default:
+      return require('@/assets/images/onboarding-bg.jpg');
+  }
+}
 
 type Props = {
   mix: FavoriteMix;
@@ -11,37 +27,45 @@ type Props = {
 
 const MixCard: React.FC<Props> = ({ mix, onPress }) => (
   <View style={styles.card}>
-    <LinearGradient
-  colors={mix.gradient as any}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
+    {/* Use onboarding images for background, move campfire image up */}
+    <ImageBackground
+      source={getOnboardingImage(mix.id)}
       style={StyleSheet.absoluteFill}
-    />
-    <View style={styles.overlayShape1} />
-    <View style={styles.overlayShape2} />
-    <View style={styles.cardContent}>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.cardTitle}>{mix.title}</Text>
-        <View style={styles.emojiRow}>
-          {mix.emojis.map((emoji, i) => (
-            <Text key={i} style={styles.emoji}>{emoji}</Text>
-          ))}
+      imageStyle={
+        (mix.id === 'campfire' || mix.id === 'peaceful' || mix.id === 'cozy' || mix.id === 'rain')
+          ? { borderRadius: 20, opacity: 0.85, top: -40 }
+          : { borderRadius: 20, opacity: 0.85 }
+      }
+      resizeMode="cover"
+    >
+      <View style={styles.overlayShape1} />
+      <View style={styles.overlayShape2} />
+      <View style={styles.cardContent}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.cardTitle}>{mix.title}</Text>
+          <View style={styles.emojiRow}>
+            {mix.emojis.map((emoji, i) => (
+              <Text key={i} style={styles.emoji}>{emoji}</Text>
+            ))}
+          </View>
+        </View>
+        <View style={styles.iconButton}>
+          <Ionicons name="play" size={28} color="#181A2A" />
         </View>
       </View>
-      <View style={styles.iconButton}>
-        <Ionicons name="play" size={28} color="#181A2A" />
-      </View>
-    </View>
+    </ImageBackground>
   </View>
 );
 
 const styles = StyleSheet.create({
   card: {
     borderRadius: 20,
-    padding: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 5,
+    marginVertical: 10,
+    minHeight: 90,
     shadowColor: '#000',
     shadowOpacity: 0.13,
     shadowRadius: 8,
@@ -53,6 +77,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 12,
   },
   cardTitle: {
     color: '#fff',

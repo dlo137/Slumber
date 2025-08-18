@@ -1,17 +1,17 @@
 import {
-  useConfirmSetupIntent,
-  usePaymentSheet,
-  usePlatformPay
+    useConfirmSetupIntent,
+    usePaymentSheet,
+    usePlatformPay
 } from '@stripe/stripe-react-native';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  StyleSheet,
-  Text,
-  View
+    ActivityIndicator,
+    Alert,
+    StyleSheet,
+    Text,
+    View
 } from 'react-native';
-import { StripeService } from '../services/stripeService';
+import { StripeService } from '../../services/stripeService';
 
 interface PaymentSheetProps {
   planType: 'weekly' | 'yearly';

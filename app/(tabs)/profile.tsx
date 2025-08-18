@@ -1,4 +1,3 @@
-
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -14,7 +13,7 @@ const NOW_PLAYING = {
   caption: '1,008 people listening now',
 };
 
-export default function MeScreen() {
+export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const storeUrl = 'https://example.com/app-store'; // TODO: Replace with real store URL
