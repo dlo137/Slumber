@@ -9,6 +9,7 @@ export interface PaymentIntent {
   customer_id?: string;
   setup_intent?: boolean;
   trial_days?: number;
+  subscription_id?: string;
 }
 
 export interface Subscription {
@@ -24,7 +25,6 @@ export class StripeService {
   static async createPaymentIntent(planType: 'weekly' | 'yearly', customerId?: string, freeTrialEnabled?: boolean): Promise<PaymentIntent> {
     try {
       console.log('Creating payment intent for:', planType, 'with free trial:', freeTrialEnabled);
-      
       const { data, error } = await supabase.functions.invoke('create-payment-intent', {
         body: {
           planType,
@@ -40,6 +40,11 @@ export class StripeService {
 
       if (!data) {
         throw new Error('No data returned from payment intent creation');
+      }
+
+      // Ensure subscription_id is present if returned from backend
+      if (data.subscription_id) {
+        data.subscription_id = data.subscription_id;
       }
 
       console.log('Payment intent created:', data);

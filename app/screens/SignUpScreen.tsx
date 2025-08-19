@@ -1,18 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  ImageBackground,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import supabase from '../../lib/supabase';
 
@@ -65,8 +66,8 @@ const SignUpScreen = () => {
         return;
       }
 
-      // Always treat as signed in, route to subscription
-  router.replace('/subscription');
+    // Always treat as signed in, route to sounds tab
+    router.replace('/(tabs)/sounds');
     } catch (error) {
       Alert.alert('Error', 'Something went wrong. Please try again.');
     } finally {
@@ -75,176 +76,184 @@ const SignUpScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#fff" barStyle="dark-content" />
+    <ImageBackground
+      source={require('../../assets/images/onboarding-bg.jpg')}
+      style={styles.bg}
+      imageStyle={styles.bgImage}
+      resizeMode="stretch"
+      blurRadius={2}
+    >
+      <StatusBar barStyle="light-content" />
+      <LinearGradient
+        colors={['rgba(0,0,0,0.25)', 'rgba(0,0,0,0.75)']}
+        style={StyleSheet.absoluteFill}
+      />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => {
-                // Prevent error if no back stack exists
-                if (router.canGoBack && router.canGoBack()) {
-                  router.back();
-                } else {
-                  router.replace('/welcome'); // fallback route
-                }
-              }}
-            >
-              <Ionicons name="arrow-back" size={24} color="#007AFF" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Create Account</Text>
-            <View style={styles.placeholder} />
-          </View>
-
-          {/* Form */}
-          <View style={styles.form}>
-            {/* Name Fields */}
-            <View style={styles.nameRow}>
-              <View style={styles.nameField}>
-                <Text style={styles.label}>First Name</Text>
+        <SafeAreaView style={styles.safe}>
+          <View style={styles.paddedContent}>
+            <View style={styles.topContent}>
+              <View style={styles.moonTile}>
+                <Ionicons name="moon-outline" size={30} color="#fff" />
+              </View>
+              <Text style={styles.h1}>Create Account</Text>
+              <Text style={styles.sub}>Start your journey to better sleep.</Text>
+            </View>
+            <View style={styles.form}>
+              <View style={styles.nameRow}>
+                <View style={styles.nameField}>
+                  <Text style={styles.label}>First Name</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={firstName}
+                    onChangeText={setFirstName}
+                    placeholder="Enter your first name"
+                    autoCapitalize="words"
+                    placeholderTextColor="rgba(255,255,255,0.5)"
+                  />
+                </View>
+                <View style={styles.nameField}>
+                  <Text style={styles.label}>Last Name</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={lastName}
+                    onChangeText={setLastName}
+                    placeholder="Enter your last name"
+                    autoCapitalize="words"
+                    placeholderTextColor="rgba(255,255,255,0.5)"
+                  />
+                </View>
+              </View>
+              <View style={styles.field}>
+                <Text style={styles.label}>Email</Text>
                 <TextInput
                   style={styles.input}
-                  value={firstName}
-                  onChangeText={setFirstName}
-                  placeholder="Enter your first name"
-                  autoCapitalize="words"
-                />
-              </View>
-              <View style={styles.nameField}>
-                <Text style={styles.label}>Last Name</Text>
-                <TextInput
-                  style={styles.input}
-                  value={lastName}
-                  onChangeText={setLastName}
-                  placeholder="Enter your last name"
-                  autoCapitalize="words"
-                />
-              </View>
-            </View>
-
-            {/* Email Field */}
-            <View style={styles.field}>
-              <Text style={styles.label}>Email</Text>
-              <TextInput
-                style={styles.input}
-                value={email}
-                onChangeText={setEmail}
-                placeholder="Enter your email"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            </View>
-
-            {/* Password Field */}
-            <View style={styles.field}>
-              <Text style={styles.label}>Password</Text>
-              <View style={styles.passwordContainer}>
-                <TextInput
-                  style={styles.passwordInput}
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder="Enter your password"
-                  secureTextEntry={!showPassword}
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="Enter your email"
+                  keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
+                  placeholderTextColor="rgba(255,255,255,0.5)"
                 />
-                <TouchableOpacity
-                  style={styles.eyeButton}
-                  onPress={() => setShowPassword(!showPassword)}
-                >
-                  <Ionicons
-                    name={showPassword ? 'eye-off' : 'eye'}
-                    size={20}
-                    color="#666"
-                  />
-                </TouchableOpacity>
               </View>
-            </View>
-
-            {/* Confirm Password Field */}
-            <View style={styles.field}>
-              <Text style={styles.label}>Confirm Password</Text>
-              <View style={styles.passwordContainer}>
-                <TextInput
-                  style={styles.passwordInput}
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  placeholder="Confirm your password"
-                  secureTextEntry={!showConfirmPassword}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-                <TouchableOpacity
-                  style={styles.eyeButton}
-                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  <Ionicons
-                    name={showConfirmPassword ? 'eye-off' : 'eye'}
-                    size={20}
-                    color="#666"
+              <View style={styles.field}>
+                <Text style={styles.label}>Password</Text>
+                <View style={styles.passwordContainer}>
+                  <TextInput
+                    style={styles.passwordInput}
+                    value={password}
+                    onChangeText={setPassword}
+                    placeholder="Enter your password"
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    placeholderTextColor="rgba(255,255,255,0.5)"
                   />
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.eyeButton}
+                    onPress={() => setShowPassword(!showPassword)}
+                  >
+                    <Ionicons
+                      name={showPassword ? 'eye-off' : 'eye'}
+                      size={20}
+                      color="#FFD59E"
+                    />
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-
-            {/* Sign Up Button */}
-            <TouchableOpacity
-              style={[styles.signUpButton, loading && styles.signUpButtonDisabled]}
-              onPress={handleSignUp}
-              disabled={loading}
-            >
-              <Text style={styles.signUpButtonText}>
-                {loading ? 'Creating Account...' : 'Create Account'}
+              <View style={styles.field}>
+                <Text style={styles.label}>Confirm Password</Text>
+                <View style={styles.passwordContainer}>
+                  <TextInput
+                    style={styles.passwordInput}
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    placeholder="Confirm your password"
+                    secureTextEntry={!showConfirmPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    placeholderTextColor="rgba(255,255,255,0.5)"
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeButton}
+                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    <Ionicons
+                      name={showConfirmPassword ? 'eye-off' : 'eye'}
+                      size={20}
+                      color="#FFD59E"
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <TouchableOpacity
+                style={[styles.signUpButton, loading && styles.signUpButtonDisabled]}
+                onPress={handleSignUp}
+                disabled={loading}
+              >
+                <Text style={styles.signUpButtonText}>
+                  {loading ? 'Creating Account...' : 'Create Account'}
+                </Text>
+              </TouchableOpacity>
+              <Text style={styles.termsText}>
+                By creating an account, you agree to our{' '}
+                <Text style={styles.linkText}>Terms of Service</Text> and{' '}
+                <Text style={styles.linkText}>Privacy Policy</Text>
               </Text>
-            </TouchableOpacity>
-
-            {/* Terms */}
-            <Text style={styles.termsText}>
-              By creating an account, you agree to our{' '}
-              <Text style={styles.linkText}>Terms of Service</Text> and{' '}
-              <Text style={styles.linkText}>Privacy Policy</Text>
-            </Text>
+            </View>
           </View>
-        </ScrollView>
+        </SafeAreaView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  paddedContent: {
+    paddingHorizontal: 24,
+    width: '100%',
     flex: 1,
-    backgroundColor: 'white',
+    alignSelf: 'center',
   },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-  },
-  header: {
-    flexDirection: 'row',
+  bg: { flex: 1 },
+  bgImage: {},
+  keyboardView: { flex: 1 },
+  safe: { flex: 1, paddingHorizontal: 24, justifyContent: 'center' },
+  topContent: {
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 20,
+    justifyContent: 'flex-start',
+    gap: 4,
+    paddingHorizontal: 12,
+    marginTop: 100,
   },
-  backButton: {
-    padding: 8,
+  moonTile: {
+    width: 72,
+    height: 72,
+    borderRadius: 20,
+    backgroundColor: '#FFD59E',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+    padding: 10,
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1a1a1a',
+  h1: {
+    color: '#fff',
+    fontSize: 32,
+    fontWeight: '800',
+    textAlign: 'center',
+    lineHeight: 38,
   },
-  placeholder: {
-    width: 40,
+  sub: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 6,
+    maxWidth: '78%',
+    lineHeight: 22,
+    marginBottom: 10,
   },
   form: {
     flex: 1,
@@ -264,59 +273,71 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1a1a1a',
+    color: '#fff',
     marginBottom: 8,
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#e1e1e1',
-    borderRadius: 12,
-    paddingHorizontal: 16,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.18)',
+    borderRadius: 16,
+    paddingHorizontal: 18,
     paddingVertical: 14,
-    fontSize: 16,
-    backgroundColor: '#f8f9fa',
+    fontSize: 18,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    color: '#fff',
+    fontWeight: '600',
+    marginTop: 10,
+    marginBottom: 10,
   },
   passwordContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#e1e1e1',
-    borderRadius: 12,
-    backgroundColor: '#f8f9fa',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.18)',
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
   passwordInput: {
     flex: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     paddingVertical: 14,
-    fontSize: 16,
+    fontSize: 18,
+    color: '#fff',
+    fontWeight: '600',
   },
   eyeButton: {
     padding: 14,
   },
   signUpButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 12,
+    backgroundColor: '#FFD59E',
+    borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 20,
     marginBottom: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 5,
   },
   signUpButtonDisabled: {
     backgroundColor: '#ccc',
   },
   signUpButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
+    color: '#1F2937',
+    fontSize: 18,
+    fontWeight: '700',
   },
   termsText: {
     fontSize: 12,
-    color: '#666',
+    color: '#fff',
     textAlign: 'center',
     lineHeight: 18,
+    marginBottom: 8,
   },
   linkText: {
-    color: '#007AFF',
+    color: '#FFD59E',
     textDecorationLine: 'underline',
   },
 });

@@ -1,23 +1,46 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import React from 'react';
-import { Linking, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Header } from '../../components/Header';
 
-const NOW_PLAYING = {
-  id: 'sound-of-the-night',
-  title: 'Sound Of The Night',
-  subtitle: 'Alex Mons – Legacy',
-  caption: '1,008 people listening now',
-};
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function MeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const storeUrl = 'https://example.com/app-store'; // TODO: Replace with real store URL
+
+    // Log out handler
+    const handleLogout = async () => {
+      await AsyncStorage.clear();
+      router.replace('/onboarding');
+    };
+  const [userName, setUserName] = React.useState('');
+  const [userEmail, setUserEmail] = React.useState('');
+  const [planType, setPlanType] = React.useState('');
+
+  useFocusEffect(
+    React.useCallback(() => {
+      let isActive = true;
+      (async () => {
+        const name = await AsyncStorage.getItem('profile.name');
+        const email = await AsyncStorage.getItem('profile.email');
+        const plan = await AsyncStorage.getItem('profile.plan');
+        if (isActive) {
+          setUserName(name || 'Your Name');
+          setUserEmail(email || 'your@email.com');
+          setPlanType(plan || 'No Plan');
+        }
+      })();
+      return () => {
+        isActive = false;
+      };
+    }, [])
+  );
 
   return (
     <View style={{ flex: 1 }}>
@@ -27,8 +50,8 @@ export default function MeScreen() {
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
       />
-  <Header title="Profile" />
-  <View style={{ height: 16 }} />
+      <Header title="Profile" />
+      <View style={{ height: 16 }} />
       <SafeAreaView style={{ flex: 1 }}>
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -40,15 +63,9 @@ export default function MeScreen() {
           removeClippedSubviews
         >
           {/* Now Playing Card */}
-          <Pressable
-            style={({ pressed }) => [
-              styles.card,
-              styles.nowPlayingCard,
-              pressed && { transform: [{ scale: 0.97 }], opacity: 0.93 },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="View details for Sound Of The Night"
-            onPress={() => router.push({ pathname: '/sound/[id]', params: { id: NOW_PLAYING.id } })}
+          <View
+            style={[styles.card, styles.nowPlayingCard]}
+            accessibilityRole="none"
           >
             <LinearGradient
               colors={["#1B2340", "#2D145D"]}
@@ -61,37 +78,49 @@ export default function MeScreen() {
             <View style={styles.overlayShape2} />
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <View style={styles.thumbIconWrap}>
-                <Ionicons name="musical-notes" size={44} color="#E7E7F7" />
+                <Ionicons name="person-outline" size={32} color="#E7E7F7" />
               </View>
               <View style={{ flex: 1, marginLeft: 14 }}>
-                <Text style={styles.cardTitle}>{NOW_PLAYING.title}</Text>
-                <Text style={styles.cardSubtitle}>{NOW_PLAYING.subtitle}</Text>
-                <Text style={styles.cardCaption}>{NOW_PLAYING.caption}</Text>
+                <Text style={styles.cardTitle}>{userName}</Text>
+                <Text style={styles.cardSubtitle}>{userEmail}</Text>
+                <Text style={styles.cardCaption}>{planType}</Text>
               </View>
-              <Ionicons name="chevron-forward" size={28} color="#E7E7F7" style={{ marginLeft: 8 }} />
+              {/* Arrow removed */}
             </View>
-          </Pressable>
+          </View>
 
-          {/* Rate App Card */}
+          {/* Our Mission Card (moved under profile card) */}
+          <View style={[styles.card, styles.missionCard]} accessibilityRole="none">
+            <Text style={styles.missionTitle}>Our Mission</Text>
+            <Text style={styles.missionText}>
+              To help you relax, sleep better, and find peace through sound. We believe everyone deserves restful nights and mindful moments.
+            </Text>
+          </View>
+
+          {/* Manage Subscription Button */}
           <Pressable
             style={({ pressed }) => [
-              styles.card,
-              styles.rateCard,
-              pressed && { transform: [{ scale: 0.97 }], opacity: 0.93 },
+              styles.manageButton,
+              pressed && { opacity: 0.7 },
             ]}
             accessibilityRole="button"
-            accessibilityLabel="Rate our App"
-            onPress={() => {
-              // TODO: Replace with real store URL
-              Linking.openURL(storeUrl);
-              // or: router.push('/rate');
-            }}
+            accessibilityLabel="Manage Subscription"
+            onPress={() => router.push('/subscription')}
           >
-            <View style={styles.heartIconWrap}>
-              <Ionicons name="heart" size={28} color="#E7E7F7" />
-            </View>
-            <Text style={styles.rateTitle}>Rate our App</Text>
-            <Ionicons name="chevron-forward" size={24} color="#E7E7F7" style={{ marginLeft: 'auto' }} />
+            <Text style={styles.manageButtonText}>Manage Subscription</Text>
+          </Pressable>
+
+          {/* Log Out Button */}
+          <Pressable
+            style={({ pressed }) => [
+              styles.logoutButton,
+              pressed && { opacity: 0.7 },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Log Out"
+            onPress={handleLogout}
+          >
+            <Text style={styles.logoutButtonText}>Log Out</Text>
           </Pressable>
         </ScrollView>
       </SafeAreaView>
@@ -100,6 +129,20 @@ export default function MeScreen() {
 }
 
 const styles = StyleSheet.create({
+  manageButton: {
+    backgroundColor: '#FFD59E',
+    borderRadius: 18,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  manageButtonText: {
+    color: '#1F2937',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
   headerContainer: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -143,13 +186,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(24,26,42,0.92)',
   },
   thumbIconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  width: 56,
+  height: 56,
+  borderRadius: 28, // Restore circle
     backgroundColor: 'rgba(231,231,247,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 2,
+    padding: 8, // Increased padding for more space around icon
   },
   heartIconWrap: {
     width: 44,
@@ -205,5 +249,37 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     transform: [{ rotate: '-12deg' }],
     zIndex: 1,
+  },
+  missionCard: {
+    backgroundColor: 'rgba(24,26,42,0.92)',
+    padding: 18,
+    borderRadius: 24,
+    marginBottom: 16,
+  },
+  missionTitle: {
+    color: '#E7E7F7',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  missionText: {
+    color: '#cfcfe6',
+    fontSize: 15,
+    fontWeight: '400',
+    lineHeight: 22,
+  },
+  logoutButton: {
+    backgroundColor: '#2D145D',
+    borderRadius: 18,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 24,
+  },
+  logoutButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
 });

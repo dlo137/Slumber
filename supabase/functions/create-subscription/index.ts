@@ -24,7 +24,10 @@ serve(async (req) => {
       expand: ["latest_invoice.payment_intent"],
     });
 
-    return new Response(JSON.stringify(subscription), {
+    return new Response(JSON.stringify({
+      subscription_id: subscription.id,
+      status: subscription.status
+    }), {
       headers: { "Content-Type": "application/json" },
     });
   } catch (e) {

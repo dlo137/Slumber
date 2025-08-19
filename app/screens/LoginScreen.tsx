@@ -1,21 +1,29 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  ImageBackground,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import supabase from '../../lib/supabase';
 
 const LoginScreen = () => {
+  const audio = require('../../components/AudioPlayerContext').useAudioPlayer();
+  // Stop ocean sound on login screen mount
+  React.useEffect(() => {
+    audio.stop('ocean');
+  }, []);
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -44,8 +52,29 @@ const LoginScreen = () => {
       if (error) {
         Alert.alert('Login Failed', error.message);
       } else {
-        // Always navigate to subscription screen after successful login
-        router.replace('/subscription');
+        // Save latest session to AsyncStorage
+        if (data?.session) {
+          await AsyncStorage.setItem('supabase.session', JSON.stringify(data.session));
+        }
+        // Check if email exists in profiles table
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('user_id, first_name, email, subscription_plan')
+          .eq('email', email.trim())
+          .single();
+        if (profileError || !profile) {
+          Alert.alert('Invalid Email', 'The email is not registered. Please try again.');
+          return;
+        }
+  // Save user info to AsyncStorage for MeScreen
+  await AsyncStorage.setItem('profile.name', profile.first_name || '');
+  await AsyncStorage.setItem('profile.email', profile.email || '');
+  const plan = profile.subscription_plan ? profile.subscription_plan.charAt(0).toUpperCase() + profile.subscription_plan.slice(1) : '';
+  await AsyncStorage.setItem('profile.plan', plan);
+  // Log user id and name for debugging
+  console.log('Logged in user:', profile.user_id, profile.first_name);
+  // Always navigate to sounds tab after successful login and valid profile
+  router.replace('/(tabs)/sounds');
       }
     } catch (error) {
       Alert.alert('Error', 'An unexpected error occurred. Please try again.');
@@ -63,196 +92,141 @@ const LoginScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ImageBackground
+      source={require('../../assets/images/onboarding-bg.jpg')}
+      style={styles.bg}
+      imageStyle={styles.bgImage}
+      resizeMode="stretch"
+      blurRadius={2}
+    >
+      <StatusBar barStyle="light-content" />
+      <LinearGradient
+        colors={['rgba(0,0,0,0.25)', 'rgba(0,0,0,0.75)']}
+        style={StyleSheet.absoluteFill}
+      />
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity 
-              style={styles.backButton}
-              onPress={() => router.back()}
-            >
-              <Ionicons name="arrow-back" size={24} color="#666" />
+        <SafeAreaView style={styles.safe}>
+          <View style={styles.paddedContent}>
+            {/* Back Arrow */}
+            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+              <Ionicons name="arrow-back" size={28} color="#FFD59E" />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Welcome Back</Text>
-            <View style={styles.placeholder} />
-          </View>
-
-          {/* App Icon */}
-          <View style={styles.appIconContainer}>
-            <View style={styles.appIcon}>
-              <Ionicons name="mic" size={28} color="white" />
+            <View style={styles.topContent}>
+              <View style={styles.moonTile}>
+                <Ionicons name="moon-outline" size={30} color="#fff" />
+              </View>
+              <Text style={styles.h1}>Welcome Back</Text>
+              <Text style={styles.sub}>Continue your journey to better sleep.</Text>
             </View>
-          </View>
-
-          {/* Title */}
-          <Text style={styles.title}>Sign In</Text>
-          <Text style={styles.subtitle}>Continue your journey with NotesSummarizer</Text>
-
-          {/* Login Form */}
-          <View style={styles.formContainer}>
-            {/* Email Input */}
-            <View style={styles.inputContainer}>
-              <Ionicons name="mail-outline" size={20} color="#666" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Email address"
-                placeholderTextColor="#999"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            </View>
-
-            {/* Password Input */}
-            <View style={styles.inputContainer}>
-              <Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
-              <TextInput
-                style={[styles.input, styles.passwordInput]}
-                placeholder="Password"
-                placeholderTextColor="#999"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              <TouchableOpacity
-                style={styles.eyeButton}
-                onPress={() => setShowPassword(!showPassword)}
-              >
-                <Ionicons 
-                  name={showPassword ? "eye-off-outline" : "eye-outline"} 
-                  size={20} 
-                  color="#666" 
+            <View style={styles.formContainer}>
+              <View style={styles.inputContainer}>
+                <Ionicons name="mail-outline" size={20} color="#FFD59E" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Email address"
+                  placeholderTextColor="rgba(255,255,255,0.5)"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
                 />
+              </View>
+              <View style={styles.inputContainer}>
+                <Ionicons name="lock-closed-outline" size={20} color="#FFD59E" style={styles.inputIcon} />
+                <TextInput
+                  style={[styles.input, styles.passwordInput]}
+                  placeholder="Password"
+                  placeholderTextColor="rgba(255,255,255,0.5)"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <Ionicons 
+                    name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                    size={20} 
+                    color="#FFD59E" 
+                  />
+                </TouchableOpacity>
+              </View>
+              <TouchableOpacity style={styles.forgotPassword} onPress={handleForgotPassword}>
+                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
+                onPress={handleLogin}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <Text style={styles.loginButtonText}>Signing In...</Text>
+                ) : (
+                  <>
+                    <Text style={styles.loginButtonText}>Sign In</Text>
+                    <Ionicons name="arrow-forward" size={20} color="#1F2937" />
+                  </>
+                )}
               </TouchableOpacity>
             </View>
-
-            {/* Forgot Password */}
-            <TouchableOpacity style={styles.forgotPassword} onPress={handleForgotPassword}>
-              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-            </TouchableOpacity>
-
-            {/* Login Button */}
-            <TouchableOpacity 
-              style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
-              onPress={handleLogin}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <Text style={styles.loginButtonText}>Signing In...</Text>
-              ) : (
-                <>
-                  <Text style={styles.loginButtonText}>Sign In</Text>
-                  <Ionicons name="arrow-forward" size={20} color="white" />
-                </>
-              )}
-            </TouchableOpacity>
           </View>
-
-          {/* Divider */}
-          <View style={styles.dividerContainer}>
-            <View style={styles.divider} />
-            <Text style={styles.dividerText}>or</Text>
-            <View style={styles.divider} />
-          </View>
-
-          {/* Sign Up Link */}
-          <View style={styles.signUpContainer}>
-            <Text style={styles.signUpText}>Don't have an account? </Text>
-            <TouchableOpacity onPress={handleSignUp}>
-              <Text style={styles.signUpLink}>Sign Up</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
+        </SafeAreaView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: 'white',
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
+  paddedContent: {
     paddingHorizontal: 24,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 16,
-    marginBottom: 32,
-  },
-  backButton: {
-    padding: 6,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1a1a1a',
-  },
-  placeholder: {
-    width: 36,
-  },
-  appIconContainer: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  appIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 12,
-    backgroundColor: '#007AFF',
+    width: '100%',
+    flex: 1,
+    alignSelf: 'center',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    textAlign: 'center',
-    marginBottom: 8,
+  backButton: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    zIndex: 10,
+    padding: 8,
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 32,
-    paddingHorizontal: 16,
-  },
+  bg: { flex: 1 },
+  bgImage: {},
+  keyboardView: { flex: 1 },
+  // ...existing code...
   formContainer: {
     marginBottom: 24,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 16,
     marginBottom: 16,
-    paddingHorizontal: 16,
-    borderWidth: 1,
-    borderColor: '#e1e1e1',
+    paddingHorizontal: 18,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.18)',
+    width: '100%',
+    alignSelf: 'center',
   },
   inputIcon: {
     marginRight: 12,
   },
   input: {
     flex: 1,
-    fontSize: 16,
-    color: '#1a1a1a',
+    fontSize: 18,
+    color: '#fff',
     paddingVertical: 16,
+    fontWeight: '600',
   },
   passwordInput: {
     paddingRight: 40,
@@ -265,25 +239,32 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   forgotPasswordText: {
-    color: '#007AFF',
+    color: '#FFD59E',
     fontSize: 14,
     fontWeight: '500',
   },
   loginButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 12,
+    backgroundColor: '#FFD59E',
+    borderRadius: 16,
     paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 8,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 5,
   },
   loginButtonDisabled: {
     backgroundColor: '#ccc',
   },
   loginButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
+    color: '#1F2937',
+    fontSize: 18,
+    fontWeight: '700',
     marginRight: 8,
   },
   dividerContainer: {
@@ -298,7 +279,7 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     marginHorizontal: 16,
-    color: '#666',
+    color: '#fff',
     fontSize: 14,
   },
   signUpContainer: {
@@ -308,13 +289,47 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   signUpText: {
-    color: '#666',
+    color: '#fff',
     fontSize: 14,
   },
   signUpLink: {
-    color: '#007AFF',
+    color: '#FFD59E',
     fontSize: 14,
     fontWeight: '600',
+  },
+  safe: { flex: 1, paddingHorizontal: 24, justifyContent: 'center' },
+  topContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    marginTop: 100,
+  },
+  moonTile: {
+    width: 72,
+    height: 72,
+    borderRadius: 20,
+    backgroundColor: '#FFD59E',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+    padding: 10,
+  },
+  h1: {
+    color: '#fff',
+    fontSize: 32,
+    fontWeight: '800',
+    textAlign: 'center',
+    lineHeight: 38,
+  },
+  sub: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 6,
+    maxWidth: '78%',
+    lineHeight: 22,
+    marginBottom: 10,
   },
 });
 

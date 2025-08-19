@@ -2,7 +2,6 @@ import MixCard from '@/src/components/MixCard';
 import { SEED_MIXES } from '@/src/data/mixes';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
@@ -170,19 +169,23 @@ export default function OnboardingScreen() {
         setLoading(false);
         return;
       }
+      // Persist session after sign up
+      if (data.session) {
+        await AsyncStorage.setItem('supabase.session', JSON.stringify(data.session));
+      }
       const user = data.user;
       if (user) {
-        // Upsert profile in 'profiles' table
+        // Upsert profile in 'profiles' table (RLS expects user_id)
         const { error: profileError } = await supabase
           .from('profiles')
           .upsert([
             {
-              id: user.id,
+              user_id: user.id, // <-- matches RLS policy
               email: email.trim(),
               first_name: name.trim(),
               // add other fields as needed
             }
-          ]);
+          ], { onConflict: 'user_id' });
         if (profileError) {
           setError(profileError.message);
           setLoading(false);
@@ -191,13 +194,33 @@ export default function OnboardingScreen() {
       }
       await AsyncStorage.setItem('profile.name', name.trim());
       await AsyncStorage.setItem('profile.email', email.trim());
-      setLoading(false);
-      setStep(2);
+  setLoading(false);
+  setStep(3); // Skip bedtime, go directly to suggestions
     } catch (e) {
       setError('Sign up failed. Please try again.');
       setLoading(false);
     }
   }
+// Restore session on app launch (best practice)
+useEffect(() => {
+  async function restoreSession() {
+    try {
+      const { supabase } = require('@/lib/supabase');
+      const sessionStr = await AsyncStorage.getItem('supabase.session');
+      if (sessionStr) {
+        const session = JSON.parse(sessionStr);
+        // Set session in Supabase client
+        await supabase.auth.setSession({
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+        });
+      }
+    } catch (err) {
+      // Ignore errors, fallback to default Supabase session management
+    }
+  }
+  restoreSession();
+}, []);
 
   const SignUpStep = () => (
     <KeyboardAvoidingView
@@ -303,89 +326,6 @@ export default function OnboardingScreen() {
     </KeyboardAvoidingView>
   );
 
-  // Step 2: Bedtime
-  const BedtimeStep = () => (
-    <SafeAreaView style={styles.safe}>
-      <View style={[styles.topContent, { justifyContent: 'center', marginTop: 0, flex: 1 }]}> 
-        <Text style={styles.h1}>Set your bedtime</Text>
-        <Text style={styles.sub}>
-          Choose which days you want reminders, and set your ideal bedtime. You can always change this later.
-        </Text>
-        <TouchableOpacity style={styles.timeBlock} onPress={openTimePicker} accessibilityRole="button" accessibilityLabel="Pick bedtime">
-          <Ionicons name="notifications-outline" size={22} color="#FFD59E" style={{ marginRight: 8 }} />
-          <Text style={styles.timeText}>{formatTime(time)}</Text>
-        </TouchableOpacity>
-        {showTimePicker && Platform.OS === 'ios' && (
-          <View style={{
-            backgroundColor: 'rgba(30,30,40,0.95)',
-            borderRadius: 12,
-            marginTop: 12,
-            padding: 8,
-            alignSelf: 'center',
-            width: '100%',
-            maxWidth: undefined,
-            shadowColor: '#000',
-            shadowOpacity: 0.25,
-            shadowRadius: 12,
-            shadowOffset: { width: 0, height: 4 },
-          }}>
-            <DateTimePicker
-              value={time}
-              mode="time"
-              is24Hour={true}
-              display="spinner"
-              onChange={(event, selectedDate) => {
-                setShowTimePicker(false);
-                if (selectedDate) setTime(selectedDate);
-              }}
-              style={{ backgroundColor: 'transparent', borderRadius: 12 }}
-            />
-          </View>
-        )}
-        <View style={styles.chipRow}>
-          {days.map((d, i) => {
-            const selected = selectedDays[i] === d;
-            return (
-              <TouchableOpacity
-                key={d + i}
-                style={[styles.chip, selected ? styles.chipSelected : styles.chipUnselected]}
-                onPress={() => {
-                  setSelectedDays(prev => {
-                    const newDays = [...prev];
-                    if (selected) {
-                      newDays[i] = '';
-                    } else {
-                      newDays[i] = d;
-                    }
-                    return newDays;
-                  });
-                }}
-                accessibilityRole="button"
-                accessibilityLabel={selected ? `Unselect ${d}` : `Select ${d}`}
-              >
-                <Text style={[styles.chipText, selected ? styles.chipTextSelected : styles.chipTextUnselected]}>{d}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </View>
-      <TouchableOpacity
-        activeOpacity={0.9}
-        style={styles.cta}
-        onPress={async () => {
-          await AsyncStorage.setItem('bedtime.time', formatTime(time));
-          await AsyncStorage.setItem('bedtime.days', JSON.stringify(selectedDays));
-          const { scheduleBedtimeReminders } = await import('@/src/lib/reminders');
-          await scheduleBedtimeReminders(formatTime(time), selectedDays as string[]);
-          setStep(3);
-        }}
-        accessibilityRole="button"
-        accessibilityLabel="Continue"
-      >
-        <Text style={styles.ctaText}>Continue</Text>
-      </TouchableOpacity>
-    </SafeAreaView>
-  );
   const SuggestionsStep = () => (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={[styles.suggScroll, { marginTop: 40 }]} showsVerticalScrollIndicator={false}>
@@ -475,11 +415,10 @@ const TrialTeaserStep = () => {
       )}
 
       <View style={{ flex: 1, width: '100%' }}>
-        {step === 0 && WelcomeStep()}
-        {step === 1 && SignUpStep()}
-        {step === 2 && BedtimeStep()}
-        {step === 3 && SuggestionsStep()}
-        {step === 4 && <TrialTeaserStep />}
+  {step === 0 && WelcomeStep()}
+  {step === 1 && SignUpStep()}
+  {step === 3 && SuggestionsStep()}
+  {step === 4 && <TrialTeaserStep />}
       </View>
     </ImageBackground>
   );

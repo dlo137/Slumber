@@ -21,6 +21,7 @@ serve(async (req) => {
       customer_id = customer.id;
     }
 
+    let subscription_id: string | undefined;
     if (freeTrialEnabled) {
       // SetupIntent for free trial (no immediate charge)
       const setupIntent = await stripe.setupIntents.create({
@@ -29,6 +30,8 @@ serve(async (req) => {
       });
       client_secret = setupIntent.client_secret!;
       setup_intent = true;
+      // Do NOT create subscription yet; wait until payment method is attached after trial
+      subscription_id = null;
     } else {
       // PaymentIntent for immediate charge
       const paymentIntent = await stripe.paymentIntents.create({
@@ -39,6 +42,8 @@ serve(async (req) => {
         metadata: { planType },
       });
       client_secret = paymentIntent.client_secret!;
+      // Only create subscription after payment is confirmed (frontend should call a separate endpoint)
+      subscription_id = null;
     }
 
     return new Response(
@@ -46,6 +51,7 @@ serve(async (req) => {
         client_secret,
         customer_id,
         setup_intent,
+        subscription_id,
       }),
       { headers: { "Content-Type": "application/json" } }
     );
