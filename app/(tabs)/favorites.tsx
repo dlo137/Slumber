@@ -26,34 +26,32 @@ const SEED_MIXES: FavoriteMix[] = [
   {
     id: 'rain',
     title: 'Rain Therapy',
-    emojis: ['🌧️', '🌊', '🎧'],
-    gradient: ['#1F2B6C', '#2E0F4F'],
+    emojis: ['🌧️', '🌊'],
+    gradient: ['#A97453', '#D2B48C'], // brown to tan
     soundIds: ['ocean', 'thunder-rain'],
     volumes: { ocean: 0.5, 'thunder-rain': 0.5 },
     tracks: [
       { id: 'ocean', title: 'Ocean', image: require('../../assets/images/water/ocean.jpg'), volume: 0.5, category: 'Water' },
-      // Use upslash image for thunder-rain to match constants/sounds.ts IMAGE_MAP
-  // Use a safe placeholder image for thunder-rain
-  { id: 'thunder-rain', title: 'Thunderstorm', image: require('../../assets/images/noise/white-noise.jpg'), volume: 0.5, category: 'Rain' },
+      { id: 'thunder-rain', title: 'Thunderstorm', image: require('../../assets/images/noise/white-noise.jpg'), volume: 0.5, category: 'Rain' },
     ],
   },
   {
     id: 'campfire',
     title: 'Campfire by the Sea',
-    emojis: ['🔥', '🌊', '🎧'],
-    gradient: ['#0F3755', '#1D224F'],
+    emojis: ['🔥', '🌊'],
+    gradient: ['#8B5C2A', '#C19A6B'], // deep brown to light brown
     soundIds: ['campfire', 'shore'],
     volumes: { campfire: 0.5, shore: 0.5 },
     tracks: [
-  { id: 'campfire', title: 'Campfire', image: require('../../assets/images/fire/campfire.jpg'), volume: 0.5, category: 'Fire' },
-  { id: 'shore', title: 'Shore', image: require('../../assets/images/water/shore.jpg'), volume: 0.5, category: 'Water' },
+      { id: 'campfire', title: 'Campfire', image: require('../../assets/images/fire/campfire.jpg'), volume: 0.5, category: 'Fire' },
+      { id: 'shore', title: 'Shore', image: require('../../assets/images/water/shore.jpg'), volume: 0.5, category: 'Water' },
     ],
   },
   {
     id: 'peaceful',
     title: 'Peaceful Camp Night',
     emojis: ['🌙', '🌲', '🔥'],
-    gradient: ['#2B5876', '#4E4376'],
+    gradient: ['#A0522D', '#DEB887'], // sienna to burlywood
     soundIds: ['night', 'campfire'],
     volumes: { night: 0.5, campfire: 0.5 },
     tracks: [
@@ -64,8 +62,8 @@ const SEED_MIXES: FavoriteMix[] = [
   {
     id: 'cozy',
     title: 'Cozy House Ambience',
-    emojis: ['🔥', '☕', '🎧'],
-    gradient: ['#1A2980', '#26D0CE'],
+    emojis: ['🔥', '☕'],
+    gradient: ['#B8860B', '#F4E2D8'], // dark goldenrod to light tan
     soundIds: ['fireplace'],
     volumes: { fireplace: 1 },
     tracks: [
@@ -242,7 +240,7 @@ export default function FavoritesScreen() {
   return (
     <View style={{ flex: 1 }}>
       <LinearGradient
-        colors={['#0B0620', '#2D145D']}
+        colors={['#804b2cff', '#FFD59E']}
         style={StyleSheet.absoluteFill}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}

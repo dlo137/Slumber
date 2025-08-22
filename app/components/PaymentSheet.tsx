@@ -15,7 +15,7 @@ import {
 import { StripeService } from '../../services/stripeService';
 
 interface PaymentSheetProps {
-  planType: 'weekly' | 'yearly';
+  planType: 'monthly' | 'yearly';
   amount: number;
   freeTrialEnabled: boolean;
   onSuccess: () => void;
@@ -71,7 +71,7 @@ const PaymentSheetComponent: React.FC<PaymentSheetProps> = ({
 
   // Update user's profile with subscription info
   const updateUserSubscription = async (
-    planType: 'weekly' | 'yearly',
+  planType: 'monthly' | 'yearly',
     subscriptionId: string | null
   ): Promise<void> => {
     try {
@@ -109,7 +109,12 @@ const PaymentSheetComponent: React.FC<PaymentSheetProps> = ({
   };
 
   // Create subscription after payment confirmation
-  const createAndStoreSubscription = async (planType: 'weekly' | 'yearly', trialEnabled: boolean) => {
+  const createAndStoreSubscription = async (
+  planType: 'monthly' | 'yearly',
+  trialEnabled: boolean,
+  stripeCustomerId?: string,
+  paymentMethodId?: string
+  ) => {
     try {
       const { supabase } = require('@/lib/supabase');
       await restoreSupabaseSession();
@@ -129,10 +134,19 @@ const PaymentSheetComponent: React.FC<PaymentSheetProps> = ({
           planType,
           trialEnabled,
           userId,
+          stripeCustomerId,
+          paymentMethodId,
         },
       });
       if (error) {
-        console.error('Error creating subscription:', error);
+        try {
+          // Supabase v2 error object exposes response for FunctionsHttpError
+          // @ts-ignore
+          const text = await error.context?.response?.text?.();
+          console.error('Error creating subscription:', error.message, text);
+        } catch {
+          console.error('Error creating subscription:', error);
+        }
         return null;
       }
       console.log('Subscription creation response:', data);
@@ -146,7 +160,11 @@ const PaymentSheetComponent: React.FC<PaymentSheetProps> = ({
   const handlePaymentFlow = async () => {
     try {
       setLoading(true);
-  const paymentData = await StripeService.createPaymentIntent(planType, undefined, freeTrialEnabled);
+  const paymentData = await StripeService.createPaymentIntent(
+    planType === 'monthly' ? 'weekly' : planType,
+    undefined,
+    freeTrialEnabled
+  );
   if (!paymentData.client_secret) throw new Error('No client secret received');
   // Log paymentData for debugging
   console.log('Payment data received from backend:', paymentData);
@@ -156,9 +174,9 @@ const PaymentSheetComponent: React.FC<PaymentSheetProps> = ({
         const supported = await isPlatformPaySupported();
         if (supported) {
           // Apple Pay recurring cart item
-          const cartItem = planType === 'weekly'
+          const cartItem = planType === 'monthly'
             ? {
-                label: 'Weekly Plan',
+                label: 'Monthly Plan',
                 amount: amount.toFixed(2),
                 paymentType: 2 as any,
                 intervalUnit: 'week',
@@ -199,6 +217,7 @@ const PaymentSheetComponent: React.FC<PaymentSheetProps> = ({
             setupIntentClientSecret: paymentData.client_secret,
             defaultBillingDetails: { name: 'NotesSummarizer User' },
             applePay: { merchantCountryCode: 'US' },
+            returnURL: 'slumber://stripe-redirect', // or your actual app scheme/deeplink
             appearance: { colors: { primary: '#007AFF' } },
           })
         : await initPaymentSheet({
@@ -207,6 +226,7 @@ const PaymentSheetComponent: React.FC<PaymentSheetProps> = ({
             defaultBillingDetails: { name: 'NotesSummarizer User' },
             applePay: { merchantCountryCode: 'US' },
             allowsDelayedPaymentMethods: true,
+            returnURL: 'slumber://stripe-redirect',
             appearance: { colors: { primary: '#007AFF' } },
           });
 
@@ -229,13 +249,28 @@ const PaymentSheetComponent: React.FC<PaymentSheetProps> = ({
 
   // Success: update profile with subscription info
   // After payment, create subscription and update profile
-  const subscriptionId = await createAndStoreSubscription(planType as 'weekly' | 'yearly', freeTrialEnabled);
-  await updateUserSubscription(planType as 'weekly' | 'yearly', subscriptionId);
-      setLoading(false);
-      const successMessage = freeTrialEnabled
-        ? 'Your 3-day free trial has started! You won\'t be charged until the trial ends.'
-        : 'Your subscription has been activated.';
-      Alert.alert('Success!', successMessage, [{ text: 'Continue', onPress: onSuccess }]);
+  // For non-trial flows, pass paymentMethodId to backend
+  const paymentMethodId = !freeTrialEnabled ? paymentData.payment_method_id : undefined;
+  const subscriptionId = await createAndStoreSubscription(
+    planType as 'monthly' | 'yearly',
+    freeTrialEnabled,
+    paymentData.customer_id,
+    paymentMethodId
+  );
+  if (subscriptionId) {
+    await updateUserSubscription(planType as 'monthly' | 'yearly', subscriptionId);
+    setLoading(false);
+    const successMessage = freeTrialEnabled
+      ? 'Your 3-day free trial has started! You won\'t be charged until the trial ends.'
+      : 'Your subscription has been activated.';
+    Alert.alert('Success!', successMessage, [{ text: 'Continue', onPress: onSuccess }]);
+  } else {
+    console.error('Subscription creation returned null; not updating profile.');
+    Alert.alert('Error', 'Subscription could not be created. Please try again.');
+    setLoading(false);
+    onCancel();
+    return;
+  }
     } catch (error) {
       console.error('Payment flow error:', error);
       Alert.alert('Error', `Payment failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -244,12 +279,13 @@ const PaymentSheetComponent: React.FC<PaymentSheetProps> = ({
     }
   };
 
-  const createSubscriptionWithTrial = async (planType: 'weekly' | 'yearly', customerId: string) => {
+  const createSubscriptionWithTrial = async (planType: 'monthly' | 'yearly', customerId: string) => {
     try {
       console.log('Creating subscription with trial for customer:', customerId);
       
       // Use the StripeService method
-      const data = await StripeService.createFreeTrial(planType, customerId);
+      const mappedPlanType = planType === 'monthly' ? 'weekly' : planType;
+      const data = await StripeService.createFreeTrial(mappedPlanType, customerId);
 
       console.log('Free trial subscription created:', data);
       return data;

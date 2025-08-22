@@ -60,13 +60,28 @@ const TrackRow: React.FC<TrackRowProps> = ({ id, title, image, volume, onVolume,
     });
   };
 
+  // Use mix gradient colors for track background
+  // Try to get gradient from params if available
+  const params = useLocalSearchParams();
+  let gradientColors: [string, string] = ["#804b2cff", "#FFD59E"];
+  if (params.gradient) {
+    try {
+      const g = typeof params.gradient === 'string' ? JSON.parse(params.gradient) : params.gradient;
+      if (Array.isArray(g) && g.length === 2) gradientColors = g;
+    } catch {}
+  }
   return (
-    <Animated.View style={{ opacity: fadeAnim, marginBottom: 12 }}>
+    <Animated.View style={{ opacity: fadeAnim }}>
       <Animated.View style={{
-        height: heightAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 72] }),
-        overflow: 'hidden',
+        height: heightAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 72] })
+        // Removed overflow: 'hidden' to prevent clipping rounded corners
       }}>
-        <View style={styles.trackRow}>
+        <LinearGradient
+          colors={gradientColors}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.trackRow}
+        >
           <Pressable onPress={handleRemove} accessibilityLabel={`Remove ${title}`} style={styles.removeBtn}>
             <Ionicons name="close" size={22} color="#fff" />
           </Pressable>
@@ -85,7 +100,7 @@ const TrackRow: React.FC<TrackRowProps> = ({ id, title, image, volume, onVolume,
               thumbTintColor={PEACH}
             />
           </View>
-        </View>
+        </LinearGradient>
       </Animated.View>
     </Animated.View>
   );
@@ -321,8 +336,14 @@ export default function MixerScreen() {
     };
   };
 
+  // Match tab gradient colors from sounds.tsx
   return (
-    <LinearGradient colors={['#0B0620', '#2D145D']} style={styles.gradient}>
+    <LinearGradient
+      colors={["#804b2cff", "#FFD59E"]}
+      style={styles.gradient}
+      start={{ x: 0.5, y: 0 }}
+      end={{ x: 0.5, y: 1 }}
+    >
       <SafeAreaView style={[styles.safe, { paddingBottom: insets.bottom }]}> 
         <View style={styles.header}>
           {/* Removed handle */}
@@ -350,6 +371,7 @@ export default function MixerScreen() {
                 />
               );
             }}
+            ItemSeparatorComponent={() => <View style={{ height: 48 }} />}
             contentContainerStyle={{ padding: 16, paddingBottom: 96 + insets.bottom }}
           />
         )}
@@ -433,10 +455,10 @@ const styles = StyleSheet.create({
   headerClose: { position: 'absolute', right: 16, top: 8, padding: 8 },
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   emptyText: { color: '#fff', opacity: 0.7, fontSize: 17, fontWeight: '500' },
-  trackRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(24,18,58,0.7)', borderRadius: 16, padding: 12, marginBottom: 0 },
+  trackRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(24,18,58,0.7)', borderRadius: 36, padding: 12 },
   removeBtn: { marginRight: 8, padding: 4 },
   trackThumb: { width: 48, height: 48, borderRadius: 8, backgroundColor: '#222', marginRight: 0 },
-  trackTitle: { color: '#fff', fontSize: 16, fontWeight: '600', marginBottom: 4 },
+  trackTitle: { color: '#fff', fontSize: 16, fontWeight: '600', marginBottom: 4, marginTop: 15 },
   sliderContainer: { height: 14, justifyContent: 'center', marginTop: 2 },
   sliderTrack: { height: SLIDER_HEIGHT, borderRadius: SLIDER_RADIUS, backgroundColor: '#2D145D', overflow: 'hidden', width: '100%', position: 'relative' },
   sliderFill: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: PEACH, borderRadius: SLIDER_RADIUS, height: SLIDER_HEIGHT },
@@ -446,7 +468,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(24,18,58,0.85)',
+    backgroundColor: '#804b2cff', // Match tab bar color from sounds.tsx
     paddingHorizontal: 16,
     paddingTop: 3, // Increased top padding to raise icons
 
@@ -477,7 +499,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#18123A',
+    backgroundColor: '#492815ff', // Match bottom nav dark brown
     borderRadius: 18,
     padding: 28,
     width: '80%',

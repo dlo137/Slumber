@@ -25,7 +25,7 @@ function TabLayoutInner() {
         screenOptions={{
           tabBarShowLabel: false,
           tabBarStyle: {
-            backgroundColor: '#18123A',
+            backgroundColor: '#804b2cff',
             borderTopWidth: 0,
             height: 52 + insets.bottom,
             justifyContent: 'center',

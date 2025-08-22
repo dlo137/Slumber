@@ -7,8 +7,8 @@ serve(async (req) => {
 
   // Example plan price IDs (replace with your actual Stripe price IDs)
   const priceIds: Record<string, string> = {
-    weekly: "price_1RrtaQI3Uf0Ofl4lDkHXOnTC", // replace with your Stripe price ID
-    yearly: "price_1RrtahI3Uf0Ofl4lbqz9Th6Y", // replace with your Stripe price ID
+    monthly: "price_1RyO2AI3Uf0Ofl4lkDgFDS35", // replace with your Stripe price ID
+    yearly: "price_1RyO0BI3Uf0Ofl4lcPuXEY8z", // replace with your Stripe price ID
   };
 
   try {

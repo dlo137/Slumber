@@ -181,18 +181,32 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return stopAll();
   }, [stopAll]);
 
-  const playAll = useCallback(async () => {
-    // This is a stub; actual implementation should map id to source
-    // for (const id of selectedIds) { ... }
+  // Play all selected sounds, requires a mapping of id to source
+  const playAll = useCallback(async (sourceMap?: Record<string, any>) => {
+    for (const id of selectedIds) {
+      const source = sourceMap?.[id];
+      if (soundRefs.current[id]) {
+        await soundRefs.current[id].playAsync();
+      } else if (source) {
+        const { sound } = await Audio.Sound.createAsync(source, { isLooping: true, shouldPlay: false });
+        soundRefs.current[id] = sound;
+        await sound.playAsync();
+      }
+    }
     setIsPlaying(true);
-  }, [setIsPlaying, selectedIds]);
+    Haptics.selectionAsync();
+  }, [selectedIds]);
 
+  // Pause all selected sounds
   const pauseAll = useCallback(async () => {
     for (const id of selectedIds) {
-      await pauseSound(id);
+      if (soundRefs.current[id]) {
+        await soundRefs.current[id].pauseAsync();
+      }
     }
     setIsPlaying(false);
-  }, [selectedIds, pauseSound, setIsPlaying]);
+    Haptics.selectionAsync();
+  }, [selectedIds]);
 
   return (
   <AudioPlayerContext.Provider value={{ selectedIds, isPlaying, play, pause: pauseSound, stop, stopAll, forceStopAll, setVolume, toggle, setSleepTimer, remove, clearAll, playAll, pauseAll, setSelectedIds: setSelectedIdsExternal }}>

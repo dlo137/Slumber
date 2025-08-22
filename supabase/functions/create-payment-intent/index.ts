@@ -7,14 +7,15 @@ serve(async (req) => {
 
   // Example plan price IDs (replace with your actual Stripe price IDs)
   const priceIds: Record<string, string> = {
-    weekly: "price_1RrtaQI3Uf0Ofl4lDkHXOnTC", // replace with your Stripe price ID
-    yearly: "price_1RrtahI3Uf0Ofl4lbqz9Th6Y", // replace with your Stripe price ID
+    weekly: "price_1RyO2AI3Uf0Ofl4lkDgFDS35", // replace with your Stripe price ID
+    yearly: "price_1RyO0BI3Uf0Ofl4lcPuXEY8z", // replace with your Stripe price ID
   };
 
   try {
     let client_secret: string | undefined;
     let customer_id = customerId;
     let setup_intent = false;
+    let payment_method_id: string | undefined = undefined;
 
     if (!customer_id) {
       const customer = await stripe.customers.create();
@@ -31,7 +32,7 @@ serve(async (req) => {
       client_secret = setupIntent.client_secret!;
       setup_intent = true;
       // Do NOT create subscription yet; wait until payment method is attached after trial
-      subscription_id = null;
+  subscription_id = undefined;
     } else {
       // PaymentIntent for immediate charge
       const paymentIntent = await stripe.paymentIntents.create({
@@ -43,7 +44,8 @@ serve(async (req) => {
       });
       client_secret = paymentIntent.client_secret!;
       // Only create subscription after payment is confirmed (frontend should call a separate endpoint)
-      subscription_id = null;
+  subscription_id = undefined;
+      payment_method_id = paymentIntent.payment_method as string;
     }
 
     return new Response(
@@ -52,10 +54,12 @@ serve(async (req) => {
         customer_id,
         setup_intent,
         subscription_id,
+        payment_method_id,
       }),
       { headers: { "Content-Type": "application/json" } }
     );
   } catch (e) {
-    return new Response(JSON.stringify({ error: e.message }), { status: 400 });
+  const err = e as Error;
+  return new Response(JSON.stringify({ error: err.message }), { status: 400 });
   }
 });

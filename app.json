@@ -7,9 +7,20 @@
     "icon": "./assets/images/icon.png",
     "scheme": "slumber",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+  "jsEngine": "jsc",
+  "newArchEnabled": false,
     "ios": {
-      "supportsTablet": true
+  "supportsTablet": true,
+  "newArchEnabled": false,
+  "buildNumber": "7",
+      "bundleIdentifier": "com.dangelo137.Slumber",
+      "infoPlist": {
+  "ITSAppUsesNonExemptEncryption": false,
+  "NSCameraUsageDescription": "Camera only if you choose to use it.",
+  "NSMicrophoneUsageDescription": "Mic only if you record audio.",
+  "NSPhotoLibraryUsageDescription": "Photos only if you pick from library.",
+  "NSPhotoLibraryAddUsageDescription": "Photos only if you save to library."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -17,14 +28,16 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "permissions": ["SCHEDULE_EXACT_ALARM"]
+      "permissions": [
+        "SCHEDULE_EXACT_ALARM"
+      ]
     },
     "web": {
       "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
-    "plugins": [
+    "plugiins": [
       "expo-router",
       "expo-notifications",
       [
@@ -39,6 +52,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5de36dfc-c850-44c2-9b5d-a6ace39f502d"
+      }
     }
   }
 }

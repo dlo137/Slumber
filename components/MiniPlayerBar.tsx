@@ -116,7 +116,7 @@ export const MiniPlayerBar: React.FC<MiniPlayerBarProps> = ({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    backgroundColor: '#18123A',
+    backgroundColor: '#804b2cff',
     flexDirection: 'row',
     alignItems: 'center', // Ensures vertical centering
     justifyContent: 'space-between',

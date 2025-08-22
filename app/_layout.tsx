@@ -1,25 +1,50 @@
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { StripeProvider } from '@stripe/stripe-react-native';
+import Constants from 'expo-constants';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Slot, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
-import { useColorScheme } from '../hooks/useColorScheme';
-
-
+import React from 'react';
 import { AudioPlayerProvider } from '../components/AudioPlayerContext';
+import { useColorScheme } from '../hooks/useColorScheme';
+const safeMode = Boolean(Constants.expoConfig?.extra?.safeMode);
 
 export default function RootLayout() {
+  if (safeMode) {
+    // Safe Mode: render nothing, skip all app code
+    return <></>;
+  }
+  const router = useRouter();
   const colorScheme = useColorScheme();
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
+  // Restore Supabase session on every app launch
+  React.useEffect(() => {
+    async function restoreSession() {
+      try {
+        const supabase = require('../lib/supabase').default;
+        const sessionStr = await AsyncStorage.getItem('supabase.session');
+        if (sessionStr) {
+          const session = JSON.parse(sessionStr);
+          await supabase.auth.setSession({
+            access_token: session.access_token,
+            refresh_token: session.refresh_token,
+          });
+        }
+      } catch (err) {
+        // Ignore errors, fallback to default Supabase session management
+      }
+    }
+    restoreSession();
+  }, []);
+
   if (!loaded) {
-    // Async font loading only occurs in development.
     return null;
   }
-
   return (
     <AudioPlayerProvider>
       <StripeProvider
@@ -27,16 +52,8 @@ export default function RootLayout() {
         merchantIdentifier="merchant.com.slumber.slumber"
       >
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <Stack screenOptions={{ headerShown: false }} initialRouteName="onboarding">
-            <Stack.Screen name="onboarding" />
-            <Stack.Screen name="welcome" />
-            <Stack.Screen name="login" />
-            <Stack.Screen name="signup" />
-            <Stack.Screen name="subscription" />
-            {/* <Stack.Screen name="(tabs)" /> */}
-            <Stack.Screen name="+not-found" />
-          </Stack>
           <StatusBar style="auto" />
+          <Slot />
         </ThemeProvider>
       </StripeProvider>
     </AudioPlayerProvider>

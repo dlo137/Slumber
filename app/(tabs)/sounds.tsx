@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useMemo } from 'react';
@@ -66,6 +67,8 @@ type SoundTileProps = {
   size: number;
   selected: boolean;
   onPress: (id: string) => void;
+  locked?: boolean;
+  style?: any;
 };
 
 const RAIN_AUDIO_MAP: Record<string, any> = {
@@ -90,8 +93,8 @@ const NOISE_AUDIO_MAP: Record<string, any> = {
 };
 
 const BAR_COUNT = 5;
-const SoundTile: React.FC<SoundTileProps> = ({ item, size, selected, onPress }) => {
-  // Animated values for bars
+// ...existing code...
+const SoundTile: React.FC<SoundTileProps> = ({ item, size, selected, onPress, locked, style }) => {
   const barAnims = React.useRef(
     Array.from({ length: BAR_COUNT }, () => new Animated.Value(1))
   ).current;
@@ -137,12 +140,20 @@ const SoundTile: React.FC<SoundTileProps> = ({ item, size, selected, onPress }) 
 
   return (
     <Pressable
-      onPress={() => onPress(item.id)}
-      style={[styles.tile, { width: size, height: size }, selected && { borderColor: '#FFD600', borderWidth: 2 }]}
+      onPress={() => !locked && onPress(item.id)}
+      style={({ pressed }) => [
+        styles.tile,
+        { width: size, height: size },
+        selected && { borderColor: '#FFD59E', borderWidth: 2 },
+        locked && { opacity: 0.45 },
+        pressed && { opacity: 0.85 },
+        style,
+      ]}
       accessibilityRole="button"
       accessibilityLabel={item.title}
       android_ripple={{ color: 'rgba(255,255,255,0.08)' }}
       hitSlop={8}
+      disabled={locked}
     >
       <ImageBackground
         source={imgSource}
@@ -154,6 +165,12 @@ const SoundTile: React.FC<SoundTileProps> = ({ item, size, selected, onPress }) 
           colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.35)']}
           style={styles.tileOverlay}
         />
+        {locked && (
+          <View style={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}>
+            {/* Lock icon overlay */}
+            <Text style={{ fontSize: 22, color: '#FFD59E', textShadowColor: '#804b2cff', textShadowRadius: 4 }}>🔒</Text>
+          </View>
+        )}
         {selected && (
           <View style={styles.soundBarsContainer} pointerEvents="none">
             {barAnims.map((anim, i) => (
@@ -212,6 +229,32 @@ export default function SoundsScreen() {
     Haptics.selectionAsync();
   };
 
+  // Get plan type from Supabase (fallback to AsyncStorage)
+  const [planType, setPlanType] = React.useState('free');
+  React.useEffect(() => {
+    (async () => {
+      let plan = 'free';
+      try {
+        const { data: userData, error: userError } = await import('../../lib/supabase').then(m => m.default.auth.getUser());
+        if (!userError && userData?.user?.id) {
+          const { data, error } = await import('../../lib/supabase').then(m => m.default
+            .from('profiles')
+            .select('subscription_plan')
+            .eq('user_id', userData.user.id)
+            .single());
+          if (!error && data) {
+            plan = (data.subscription_plan || 'free').trim().toLowerCase();
+            await AsyncStorage.setItem('profile.subscription_plan', plan);
+          }
+        }
+      } catch {}
+      if (!plan) {
+        plan = (await AsyncStorage.getItem('profile.subscription_plan')) || 'free';
+      }
+      setPlanType(plan.trim().toLowerCase());
+    })();
+  }, []);
+
   const sections = SOUND_SECTIONS.map(section => {
     // Split into rows
     const rows = Array.from({ length: Math.ceil(section.data.length / NUM_COLUMNS) }, (_, i) =>
@@ -227,7 +270,7 @@ export default function SoundsScreen() {
   return (
     <View style={styles.flex}>
       <LinearGradient
-        colors={['#0B0620', '#2D145D']}
+        colors={['#804b2cff', '#FFD59E']}
         style={StyleSheet.absoluteFill}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
@@ -245,21 +288,28 @@ export default function SoundsScreen() {
         renderItem={({ item, section, index }) => {
           // For the last row in a section, add extra marginBottom for spacing between categories
           const isLastRow = index === section.data.length - 1;
+          // Gate second and third row for free users
+          const isSecondRow = index === 1;
+          const isThirdRow = index === 2;
+          const locked = planType === 'free' && (isSecondRow || isThirdRow);
           return (
             <View
               style={{
                 flexDirection: 'row',
                 gap: GAP,
-                marginBottom: isLastRow ? GAP * 3 : GAP, // More space after last row of each section
+                marginBottom: isLastRow ? GAP * 3 : GAP,
               }}
             >
-              {item.map((sound: SoundItem) => (
+              {item.map((sound: SoundItem, i) => (
                 <SoundTile
                   key={sound.id}
                   item={sound}
                   size={TILE_SIZE}
                   selected={audio.selectedIds.includes(sound.id)}
                   onPress={handleTilePress}
+                  locked={locked}
+                  // Add extra bottom radius for last row
+                  style={isLastRow ? { borderBottomLeftRadius: 18, borderBottomRightRadius: 18 } : undefined}
                 />
               ))}
               {item.length < NUM_COLUMNS &&
@@ -316,7 +366,7 @@ const styles = StyleSheet.create({
   tile: {
     borderRadius: 18,
     overflow: 'hidden',
-    backgroundColor: '#1A1733',
+    backgroundColor: '#804b2cff',
     marginBottom: 0,
     marginRight: 0,
     elevation: 2,
@@ -357,6 +407,6 @@ const styles = StyleSheet.create({
     height: 18,
     marginHorizontal: 2,
     borderRadius: 2,
-    backgroundColor: '#FFD600',
+    backgroundColor: '#FFD59E',
   },
 });

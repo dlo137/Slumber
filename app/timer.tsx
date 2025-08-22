@@ -71,7 +71,12 @@ export default function TimerScreen() {
 
   // UI
   return (
-    <LinearGradient colors={['#0B0620', '#2D145D']} style={styles.gradient}>
+    <LinearGradient
+      colors={['#804b2cff', '#FFD59E']}
+      style={styles.gradient}
+      start={{ x: 0.5, y: 0 }}
+      end={{ x: 0.5, y: 1 }}
+    >
       <SafeAreaView style={[styles.safe, { paddingBottom: insets.bottom }]}> 
         <View style={styles.headerRow}>
           <View style={{ flex: 1 }} />

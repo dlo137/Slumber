@@ -1,8 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, ImageBackground, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import supabase from '../../lib/supabase';
 import PaymentSheetComponent from '../components/PaymentSheet';
 
 // Defensive error boundary for text rendering issues
@@ -34,7 +36,7 @@ const features = [
 
 export default function SubscriptionScreen() {
   const [freeTrialEnabled, setFreeTrialEnabled] = useState(true);
-  const [selectedPlan, setSelectedPlan] = useState<'weekly' | 'yearly'>('yearly');
+  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
   const [showPaymentSheet, setShowPaymentSheet] = useState(false);
   const router = useRouter();
 
@@ -55,6 +57,35 @@ export default function SubscriptionScreen() {
 
   const handlePaymentCancel = () => {
     setShowPaymentSheet(false);
+  };
+
+  // Free version handler
+  const handleFreeVersion = async () => {
+    try {
+      // Get current user
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      const userId = userData?.user?.id;
+      if (!userError && userId) {
+        // Always create a unique subscription_id for free trial
+        const subscriptionId = `free_trial_${userId}`;
+        await supabase
+          .from('profiles')
+          .update({ subscription_plan: 'free', subscription_id: subscriptionId })
+          .eq('user_id', userId);
+        await AsyncStorage.setItem('profile.subscription_plan', 'free');
+        await AsyncStorage.setItem('profile.subscription_id', subscriptionId);
+        // Defensive: always set as lowercase and trimmed
+        const plan = (await AsyncStorage.getItem('profile.subscription_plan')) || '';
+        await AsyncStorage.setItem('profile.subscription_plan', plan.trim().toLowerCase());
+        Alert.alert('Free Version', 'You are now using the free version.', [
+          { text: 'Continue', onPress: () => router.replace('/(tabs)/sounds') },
+        ]);
+      } else {
+        Alert.alert('Error', 'Could not update profile for free version.');
+      }
+    } catch (err) {
+      Alert.alert('Error', 'An error occurred while switching to free version.');
+    }
   };
 
   return (
@@ -105,13 +136,13 @@ export default function SubscriptionScreen() {
             <TouchableOpacity style={[styles.planCard, selectedPlan === 'yearly' && styles.planCardSelected]} onPress={() => setSelectedPlan('yearly')}>
               <View style={styles.planBadge}><Text style={styles.planBadgeText}>BEST VALUE</Text></View>
               <Text style={styles.planTitle}>YEARLY PLAN</Text>
-              <Text style={styles.planPrice}>$99.99/year</Text>
-              <Text style={styles.planSubtext}>Just $1.92/week</Text>
+              <Text style={styles.planPrice}>$49.99/year</Text>
+              <Text style={styles.planSubtext}>Just $0.96/week</Text>
             </TouchableOpacity>
-            {/* Weekly Plan */}
-            <TouchableOpacity style={[styles.planCard, selectedPlan === 'weekly' && styles.planCardSelected]} onPress={() => setSelectedPlan('weekly')}>
-              <Text style={styles.planTitle}>{freeTrialEnabled ? '3-DAY FREE TRIAL' : 'WEEKLY PLAN'}</Text>
-              <Text style={styles.planPrice}>{freeTrialEnabled ? 'then $5.99/week' : '$5.99/week'}</Text>
+            {/* Monthly Plan */}
+            <TouchableOpacity style={[styles.planCard, selectedPlan === 'monthly' && styles.planCardSelected]} onPress={() => setSelectedPlan('monthly')}>
+              <Text style={styles.planTitle}>{freeTrialEnabled ? '3-DAY FREE TRIAL' : 'MONTHLY PLAN'}</Text>
+              <Text style={styles.planPrice}>{freeTrialEnabled ? 'then $4.99/month' : '$4.99/month'}</Text>
             </TouchableOpacity>
           </View>
           {/* Continue Button */}
@@ -119,21 +150,22 @@ export default function SubscriptionScreen() {
             <Text style={styles.ctaText}>{freeTrialEnabled ? 'Start free trial' : 'Continue'}</Text>
             <Ionicons name="arrow-forward" size={20} color="#1F2937" />
           </TouchableOpacity>
+          {/* Continue to Free Version Text Link */}
+          <TouchableOpacity onPress={handleFreeVersion} style={{ alignSelf: 'center', marginTop: -8 }}>
+            <Text style={{ color: '#FFD59E', fontSize: 16, fontWeight: '700' }}>
+              Continue to Free Version
+            </Text>
+          </TouchableOpacity>
 
           {/* Stripe Payment Sheet */}
           <PaymentSheetComponent
             planType={selectedPlan}
-            amount={selectedPlan === 'yearly' ? 99.99 : 5.99}
+            amount={selectedPlan === 'yearly' ? 49.99 : 4.99}
             freeTrialEnabled={freeTrialEnabled}
             onSuccess={handlePaymentSuccess}
             onCancel={handlePaymentCancel}
             isVisible={showPaymentSheet}
           />
-          {/* Disclaimer */}
-          <View style={styles.disclaimerContainer}>
-            <View style={styles.checkbox}><Ionicons name="checkmark" size={12} color="#FFD59E" /></View>
-            <Text style={styles.disclaimerText}>{freeTrialEnabled ? 'NO PAYMENT NOW, CANCEL ANYTIME' : 'CANCEL ANYTIME'}</Text>
-          </View>
         </View>
         </SafeAreaView>
       </ImageBackground>

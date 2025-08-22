@@ -3,11 +3,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React from 'react';
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Header } from '../../components/Header';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import supabase from '../../lib/supabase';
 
 export default function MeScreen() {
   const insets = useSafeAreaInsets();
@@ -22,18 +23,48 @@ export default function MeScreen() {
   const [userName, setUserName] = React.useState('');
   const [userEmail, setUserEmail] = React.useState('');
   const [planType, setPlanType] = React.useState('');
+  const [planLoading, setPlanLoading] = React.useState(true);
 
   useFocusEffect(
     React.useCallback(() => {
       let isActive = true;
+      setPlanLoading(true);
       (async () => {
-        const name = await AsyncStorage.getItem('profile.name');
-        const email = await AsyncStorage.getItem('profile.email');
-        const plan = await AsyncStorage.getItem('profile.plan');
+        // Get current user
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        let profileData;
+        if (!userError && userData?.user?.id) {
+          // Fetch profile from Supabase
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('name,email,subscription_plan')
+            .eq('user_id', userData.user.id)
+            .single();
+          if (!error && data) {
+            profileData = data;
+            await AsyncStorage.setItem('profile.name', data.name || 'Your Name');
+            await AsyncStorage.setItem('profile.email', data.email || 'your@email.com');
+            await AsyncStorage.setItem('profile.subscription_plan', (data.subscription_plan || '').trim().toLowerCase());
+          }
+        }
+        // Fallback to AsyncStorage if Supabase fails
+        const name = profileData?.name || (await AsyncStorage.getItem('profile.name')) || 'Your Name';
+        const email = profileData?.email || (await AsyncStorage.getItem('profile.email')) || 'your@email.com';
+        let normalizedPlan = profileData?.subscription_plan || (await AsyncStorage.getItem('profile.subscription_plan')) || 'free';
+        normalizedPlan = normalizedPlan.trim().toLowerCase();
         if (isActive) {
-          setUserName(name || 'Your Name');
-          setUserEmail(email || 'your@email.com');
-          setPlanType(plan || 'No Plan');
+          setUserName(name);
+          setUserEmail(email);
+          if (normalizedPlan === 'free') {
+            setPlanType('Free Plan');
+          } else if (normalizedPlan === 'monthly') {
+            setPlanType('Monthly Plan');
+          } else if (normalizedPlan === 'yearly') {
+            setPlanType('Yearly Plan');
+          } else {
+            setPlanType('Could not find plan'); // fallback to Free Plan if unknown value
+          }
+          setPlanLoading(false);
         }
       })();
       return () => {
@@ -45,7 +76,7 @@ export default function MeScreen() {
   return (
     <View style={{ flex: 1 }}>
       <LinearGradient
-        colors={['#0B0620', '#2D145D']}
+        colors={['#804b2cff', '#FFD59E']}
         style={StyleSheet.absoluteFill}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
@@ -68,7 +99,7 @@ export default function MeScreen() {
             accessibilityRole="none"
           >
             <LinearGradient
-              colors={["#1B2340", "#2D145D"]}
+              colors={["#804b2cff", "#FFD59E"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={StyleSheet.absoluteFill}
@@ -83,7 +114,11 @@ export default function MeScreen() {
               <View style={{ flex: 1, marginLeft: 14 }}>
                 <Text style={styles.cardTitle}>{userName}</Text>
                 <Text style={styles.cardSubtitle}>{userEmail}</Text>
-                <Text style={styles.cardCaption}>{planType}</Text>
+                {planLoading ? (
+                  <ActivityIndicator size="small" color="#FFD59E" style={{ marginTop: 4 }} />
+                ) : (
+                  <Text style={styles.cardCaption}>{planType}</Text>
+                )}
               </View>
               {/* Arrow removed */}
             </View>
@@ -105,9 +140,22 @@ export default function MeScreen() {
             ]}
             accessibilityRole="button"
             accessibilityLabel="Manage Subscription"
-            onPress={() => router.push('/subscription')}
+            onPress={() => router.push('/manage-subscription')}
           >
             <Text style={styles.manageButtonText}>Manage Subscription</Text>
+          </Pressable>
+
+          {/* Privacy Policy Button */}
+          <Pressable
+            style={({ pressed }) => [
+              styles.privacyButton,
+              pressed && { opacity: 0.7 },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Privacy Policy"
+            onPress={() => router.push('/privacy-policy')}
+          >
+            <Text style={styles.privacyButtonText}>Privacy Policy</Text>
           </Pressable>
 
           {/* Log Out Button */}
@@ -122,6 +170,58 @@ export default function MeScreen() {
           >
             <Text style={styles.logoutButtonText}>Log Out</Text>
           </Pressable>
+
+          {/* Delete Account Button */}
+          <Pressable
+            style={({ pressed }) => [
+              styles.deleteButton,
+              pressed && { opacity: 0.7 },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Delete Account"
+            onPress={async () => {
+              Alert.alert(
+                'Delete Account',
+                'Are you sure you want to delete your account? This action cannot be undone.',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Delete', style: 'destructive', onPress: async () => {
+                      // Get current user
+                      const { data: userData, error: userError } = await supabase.auth.getUser();
+                      if (!userError && userData?.user?.id) {
+                        try {
+                          // Call Edge Function to delete profile and auth user
+                          // Get current session token
+                          const { data: { session } } = await supabase.auth.getSession();
+                          const response = await fetch('https://fowatbakqmmvxqtackzf.functions.supabase.co/delete-account', {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              Authorization: `Bearer ${session?.access_token ?? ''}`,
+                            },
+                            body: JSON.stringify({ userId: userData.user.id }),
+                          });
+                          const result = await response.json();
+                          if (!result.success) {
+                            Alert.alert('Error', result.error || 'Failed to delete account.');
+                            return;
+                          }
+                        } catch (e) {
+                          Alert.alert('Error', 'Failed to delete account.');
+                          return;
+                        }
+                      }
+                      // Clear local storage and redirect
+                      await AsyncStorage.clear();
+                      router.replace('/onboarding');
+                    }
+                  },
+                ]
+              );
+            }}
+          >
+            <Text style={styles.deleteButtonText}>Delete Account</Text>
+          </Pressable>
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -129,8 +229,38 @@ export default function MeScreen() {
 }
 
 const styles = StyleSheet.create({
-  manageButton: {
+  deleteButton: {
     backgroundColor: '#FFD59E',
+    borderRadius: 18,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 32,
+    borderWidth: 2,
+    borderColor: '#804b2cff',
+  },
+  deleteButtonText: {
+    color: '#804b2cff',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  privacyButton: {
+    backgroundColor: '#804b2cff',
+    borderRadius: 18,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  privacyButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  manageButton: {
+    backgroundColor: '#804b2cff',
     borderRadius: 18,
     paddingVertical: 14,
     alignItems: 'center',
@@ -138,7 +268,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   manageButtonText: {
-    color: '#1F2937',
+  color: '#fff',
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.2,
@@ -269,7 +399,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   logoutButton: {
-    backgroundColor: '#2D145D',
+    backgroundColor: '#804b2cff',
     borderRadius: 18,
     paddingVertical: 14,
     alignItems: 'center',

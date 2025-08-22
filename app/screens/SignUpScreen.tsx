@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -66,8 +67,11 @@ const SignUpScreen = () => {
         return;
       }
 
-    // Always treat as signed in, route to sounds tab
-    router.replace('/(tabs)/sounds');
+      // Set default plan for new users (e.g., weekly)
+      await AsyncStorage.setItem('profile.plan', 'Weekly');
+
+      // Always treat as signed in, route to sounds tab
+      router.replace('/(tabs)/sounds');
     } catch (error) {
       Alert.alert('Error', 'Something went wrong. Please try again.');
     } finally {

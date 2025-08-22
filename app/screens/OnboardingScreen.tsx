@@ -242,9 +242,13 @@ useEffect(() => {
               keyboardType="default"
               autoCapitalize="words"
               accessibilityRole="text"
-              accessibilityLabel="Your name"
-              returnKeyType="next"
-            />
+                accessibilityLabel="Name entry"
+                returnKeyType="next"
+                autoComplete="off"
+                textContentType="none"
+                autoCorrect={false}
+                spellCheck={false}
+              />
             <TextInput
               style={[styles.input, { marginTop: 0, marginBottom: 10 }]}
               placeholder="Email address"
@@ -254,9 +258,13 @@ useEffect(() => {
               keyboardType="email-address"
               autoCapitalize="none"
               accessibilityRole="text"
-              accessibilityLabel="Email address"
-              returnKeyType="next"
-            />
+                accessibilityLabel="Email entry"
+                returnKeyType="next"
+                autoComplete="off"
+                textContentType="none"
+                autoCorrect={false}
+                spellCheck={false}
+              />
             <View style={{ width: '90%', alignSelf: 'center', position: 'relative', marginBottom: 10 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 16, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.18)' }}>
                 <TextInput
@@ -267,10 +275,12 @@ useEffect(() => {
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
                   accessibilityRole="text"
-                  accessibilityLabel="Password"
-                  returnKeyType="next"
-                  autoComplete="password"
-                  textContentType="password"
+                    accessibilityLabel="Secret entry"
+                    returnKeyType="next"
+                    autoComplete="off"
+                    textContentType="none"
+                    autoCorrect={false}
+                    spellCheck={false}
                 />
                 <TouchableOpacity
                   style={{ paddingHorizontal: 12, height: 52, justifyContent: 'center', alignItems: 'center' }}
@@ -292,10 +302,12 @@ useEffect(() => {
                   onChangeText={setConfirmPassword}
                   secureTextEntry={!showConfirmPassword}
                   accessibilityRole="text"
-                  accessibilityLabel="Confirm password"
-                  returnKeyType="done"
-                  autoComplete="password"
-                  textContentType="password"
+                    accessibilityLabel="Secret confirmation entry"
+                    returnKeyType="done"
+                    autoComplete="off"
+                    textContentType="none"
+                    autoCorrect={false}
+                    spellCheck={false}
                 />
                 <TouchableOpacity
                   style={{ paddingHorizontal: 12, height: 52, justifyContent: 'center', alignItems: 'center' }}
@@ -333,19 +345,17 @@ useEffect(() => {
         <View style={styles.suggHeader}>
           <Text style={styles.emojiBadge}>😴</Text>
           <Text style={styles.suggH1}>
-  Get Better Sleep with
-  {'\n'}Personalized Suggestions
-</Text>
+            Get Better Sleep with{"\n"}Personalized Suggestions
+          </Text>
           <Text style={styles.suggSub}>We have saved them in your favorites.</Text>
         </View>
 
         {/* Mix list — map SEED_MIXES */}
-        <View style={{ gap: 10, marginTop: 10 }}>
+        <View style={{ gap: 1, marginTop: 10 }}>
           {SEED_MIXES.map(mix => (
             <MixCard key={mix.id} mix={mix} />
           ))}
         </View>
-
 
         {/* Sleeping Sounds 101 */}
         <Text style={styles.s101Title}>Sleeping Sounds 101</Text>
@@ -524,6 +534,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.18)',
+    // Prevent iOS autofill yellow background
+    ...(Platform.OS === 'web' ? {
+      WebkitBoxShadow: '0 0 0 1000px rgba(255,255,255,0.08) inset',
+      WebkitTextFillColor: '#fff',
+      backgroundColor: 'rgba(255,255,255,0.08)',
+    } : {}),
   },
   brand: {
     color: '#FFD59E',
