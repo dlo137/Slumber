@@ -61,17 +61,7 @@ serve(async (req) => {
         }
       }
       if (pmId) {
-        // Attach payment method to customer before setting as default
-        try {
-          await stripe.paymentMethods.attach(pmId, { customer: stripeCustomerId });
-        } catch (attachErr) {
-          // Ignore if already attached
-          const errMsg = String((attachErr as any)?.message);
-          if (!errMsg.includes('already attached')) {
-            console.error('Error attaching payment method:', attachErr);
-            return new Response(JSON.stringify({ error: 'Error attaching payment method', details: attachErr }), { status: 400 });
-          }
-        }
+        // Do NOT attach; just set as default (assume already attached by PaymentIntent confirmation)
         await stripe.customers.update(stripeCustomerId, {
           invoice_settings: { default_payment_method: pmId },
         });

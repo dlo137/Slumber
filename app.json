@@ -4,25 +4,27 @@
     "slug": "Slumber",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+  "icon": "./assets/images/app_icon.png",
     "scheme": "slumber",
     "userInterfaceStyle": "automatic",
   "jsEngine": "jsc",
   "newArchEnabled": false,
     "ios": {
-  "supportsTablet": true,
-  "newArchEnabled": false,
-  "buildNumber": "7",
+      "icon": "./assets/images/app_icon.png",
+      "supportsTablet": true,
+      "newArchEnabled": false,
+      "buildNumber": "7",
       "bundleIdentifier": "com.dangelo137.Slumber",
       "infoPlist": {
-  "ITSAppUsesNonExemptEncryption": false,
-  "NSCameraUsageDescription": "Camera only if you choose to use it.",
-  "NSMicrophoneUsageDescription": "Mic only if you record audio.",
-  "NSPhotoLibraryUsageDescription": "Photos only if you pick from library.",
-  "NSPhotoLibraryAddUsageDescription": "Photos only if you save to library."
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Camera only if you choose to use it.",
+        "NSMicrophoneUsageDescription": "Mic only if you record audio.",
+        "NSPhotoLibraryUsageDescription": "Photos only if you pick from library.",
+        "NSPhotoLibraryAddUsageDescription": "Photos only if you save to library."
       }
     },
     "android": {
+      "icon": "./assets/images/app_icon.png",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"

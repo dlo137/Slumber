@@ -10,6 +10,7 @@ export interface PaymentIntent {
   setup_intent?: boolean;
   trial_days?: number;
   subscription_id?: string;
+  payment_method?: string;
 }
 
 export interface Subscription {

@@ -1,16 +1,16 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
-  useConfirmSetupIntent,
-  usePaymentSheet,
-  usePlatformPay
+    useConfirmSetupIntent,
+    usePaymentSheet,
+    usePlatformPay
 } from '@stripe/stripe-react-native';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  StyleSheet,
-  Text,
-  View
+    ActivityIndicator,
+    Alert,
+    StyleSheet,
+    Text,
+    View
 } from 'react-native';
 import { StripeService } from '../../services/stripeService';
 
@@ -143,9 +143,13 @@ const PaymentSheetComponent: React.FC<PaymentSheetProps> = ({
           // Supabase v2 error object exposes response for FunctionsHttpError
           // @ts-ignore
           const text = await error.context?.response?.text?.();
-          console.error('Error creating subscription:', error.message, text);
-        } catch {
-          console.error('Error creating subscription:', error);
+          console.error('Error creating subscription:', {
+            message: error.message,
+            fullError: error,
+            responseText: text
+          });
+        } catch (err) {
+          console.error('Error creating subscription (catch):', error, err);
         }
         return null;
       }
@@ -160,64 +164,23 @@ const PaymentSheetComponent: React.FC<PaymentSheetProps> = ({
   const handlePaymentFlow = async () => {
     try {
       setLoading(true);
-  const paymentData = await StripeService.createPaymentIntent(
-    planType === 'monthly' ? 'weekly' : planType,
-    undefined,
-    freeTrialEnabled
-  );
-  if (!paymentData.client_secret) throw new Error('No client secret received');
-  // Log paymentData for debugging
-  console.log('Payment data received from backend:', paymentData);
+      // Use correct planType (no monthly→weekly typo)
+      const paymentData = await StripeService.createPaymentIntent(
+        planType,
+        undefined,
+        freeTrialEnabled
+      );
+      if (!paymentData.client_secret) throw new Error('No client secret received');
+      console.log('Payment data received from backend:', paymentData);
 
-      // If NOT a free trial (i.e., PaymentIntent flow), try Apple Pay first
-      if (!freeTrialEnabled) {
-        const supported = await isPlatformPaySupported();
-        if (supported) {
-          // Apple Pay recurring cart item
-          const cartItem = planType === 'monthly'
-            ? {
-                label: 'Monthly Plan',
-                amount: amount.toFixed(2),
-                paymentType: 2 as any,
-                intervalUnit: 'week',
-                intervalCount: 1,
-              }
-            : {
-                label: 'Yearly Plan',
-                amount: amount.toFixed(2),
-                paymentType: 2 as any,
-                intervalUnit: 'year',
-                intervalCount: 1,
-              };
-          const params = {
-            applePay: {
-              merchantCountryCode: 'US',
-              currencyCode: 'USD',
-              cartItems: [cartItem],
-            }
-          };
-          const result = await confirmPlatformPayPayment(paymentData.client_secret, params);
-          if (!result.error) {
-            // Update profile with subscription info
-            // After payment, create subscription and update profile
-            const subscriptionId = await createAndStoreSubscription(planType, freeTrialEnabled);
-            await updateUserSubscription(planType, subscriptionId);
-            setLoading(false);
-            Alert.alert('Success!', 'Your subscription has been activated.', [{ text: 'Continue', onPress: onSuccess }]);
-            return;
-          }
-          // If Apple Pay failed/cancelled, fall through to PaymentSheet as a fallback
-        }
-      }
-
-      // --- Existing logic (unchanged), but include applePay option so sheet shows Apple Pay row ---
+      // PaymentSheet initialization
       const sheetInit = freeTrialEnabled
         ? await initPaymentSheet({
             merchantDisplayName: 'NotesSummarizer',
             setupIntentClientSecret: paymentData.client_secret,
             defaultBillingDetails: { name: 'NotesSummarizer User' },
             applePay: { merchantCountryCode: 'US' },
-            returnURL: 'slumber://stripe-redirect', // or your actual app scheme/deeplink
+            returnURL: 'slumber://stripe-redirect',
             appearance: { colors: { primary: '#007AFF' } },
           })
         : await initPaymentSheet({
@@ -247,30 +210,37 @@ const PaymentSheetComponent: React.FC<PaymentSheetProps> = ({
         return;
       }
 
-  // Success: update profile with subscription info
-  // After payment, create subscription and update profile
-  // For non-trial flows, pass paymentMethodId to backend
-  const paymentMethodId = !freeTrialEnabled ? paymentData.payment_method_id : undefined;
-  const subscriptionId = await createAndStoreSubscription(
-    planType as 'monthly' | 'yearly',
-    freeTrialEnabled,
-    paymentData.customer_id,
-    paymentMethodId
-  );
-  if (subscriptionId) {
-    await updateUserSubscription(planType as 'monthly' | 'yearly', subscriptionId);
-    setLoading(false);
-    const successMessage = freeTrialEnabled
-      ? 'Your 3-day free trial has started! You won\'t be charged until the trial ends.'
-      : 'Your subscription has been activated.';
-    Alert.alert('Success!', successMessage, [{ text: 'Continue', onPress: onSuccess }]);
-  } else {
-    console.error('Subscription creation returned null; not updating profile.');
-    Alert.alert('Error', 'Subscription could not be created. Please try again.');
-    setLoading(false);
-    onCancel();
-    return;
-  }
+      // Success: update profile with subscription info
+      // For trial, create subscription after SetupIntent confirmation
+      let subscriptionId: string | null = null;
+      if (freeTrialEnabled) {
+        // After confirming SetupIntent, create subscription with payment method
+        // (handled in createAndStoreSubscription)
+        subscriptionId = await createAndStoreSubscription(
+          planType,
+          freeTrialEnabled,
+          paymentData.customer_id,
+          undefined // paymentMethodId will be handled in create-subscription
+        );
+      } else {
+        // For non-trial, subscription_id is already returned from backend
+        subscriptionId = paymentData.subscription_id ?? null;
+      }
+
+      if (subscriptionId) {
+        await updateUserSubscription(planType, subscriptionId);
+        setLoading(false);
+        const successMessage = freeTrialEnabled
+          ? 'Your 3-day free trial has started! You won\'t be charged until the trial ends.'
+          : 'Your subscription has been activated.';
+        Alert.alert('Success!', successMessage, [{ text: 'Continue', onPress: onSuccess }]);
+      } else {
+        console.error('Subscription creation returned null; not updating profile.');
+        Alert.alert('Error', 'Subscription could not be created. Please try again.');
+        setLoading(false);
+        onCancel();
+        return;
+      }
     } catch (error) {
       console.error('Payment flow error:', error);
       Alert.alert('Error', `Payment failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
