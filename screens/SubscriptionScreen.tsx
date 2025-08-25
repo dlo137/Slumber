@@ -1,10 +1,8 @@
-import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, ImageBackground, Platform, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import supabase from '../../lib/supabase';
+import { Alert, Platform, StyleSheet, Text, View } from 'react-native';
+import supabase from '../lib/supabase';
 let IAP: typeof import('expo-in-app-purchases') | null = null;
 if (!__DEV__ && Platform.OS === 'ios') {
   try {
@@ -47,6 +45,8 @@ const features = [
 ];
 
 const SubscriptionScreen = () => {
+  console.log('SubscriptionScreen mounted');
+
   const [freeTrialEnabled, setFreeTrialEnabled] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
   const [showIAPSheet, setShowIAPSheet] = useState(false);
@@ -138,92 +138,9 @@ const SubscriptionScreen = () => {
 
   return (
     <TextErrorBoundary>
-      <ImageBackground
-        source={require('../../assets/images/onboarding-bg.jpg')}
-        style={styles.bg}
-        imageStyle={styles.bgImage}
-        resizeMode="stretch"
-      >
-        <LinearGradient
-          colors={['rgba(0,0,0,0.25)', 'rgba(0,0,0,0.75)']}
-          style={StyleSheet.absoluteFill}
-        />
-        <SafeAreaView style={styles.safeArea}>
-          <View style={styles.container}>
-          {/* App Icon */}
-          <View style={styles.appIconContainer}>
-            <View style={styles.appIcon}>
-              <Ionicons name="moon-outline" size={32} color="#fff" />
-            </View>
-          </View>
-          {/* Title */}
-          <View style={{ alignItems: 'center', marginBottom: 8 }}>
-            <Text style={styles.h1}>Unlock</Text>
-            <Text style={[styles.h1, styles.peach]}>Slumber Pro</Text>
-          </View>
-          <Text style={[styles.sub, { textAlign: 'center', alignSelf: 'center' }]}>Get the best sleep experience with all features unlocked.</Text>
-          {/* Features List */}
-          <View style={styles.featuresContainer}>
-            {features.map((feature, index) => (
-              <View key={index} style={styles.featureItem}>
-                <Ionicons name={feature.icon as any} size={22} color={feature.color} style={{ marginRight: 10 }} />
-                <Text style={styles.featureText}>{feature.text}</Text>
-              </View>
-            ))}
-          </View>
-          {/* Free Trial Toggle */}
-          <View style={styles.trialContainer}>
-            <Text style={styles.trialText}>{freeTrialEnabled ? 'Free Trial Enabled' : 'Enable Free Trial'}</Text>
-            <TouchableOpacity style={[styles.toggle, freeTrialEnabled && styles.toggleActive]} onPress={() => setFreeTrialEnabled(!freeTrialEnabled)}>
-              <View style={[styles.toggleThumb, freeTrialEnabled && styles.toggleThumbActive]} />
-            </TouchableOpacity>
-          </View>
-          {/* Pricing Plans */}
-          <View style={styles.plansContainer}>
-            {/* Yearly Plan */}
-            <TouchableOpacity style={[styles.planCard, selectedPlan === 'yearly' && styles.planCardSelected]} onPress={() => setSelectedPlan('yearly')}>
-              <View style={styles.planBadge}><Text style={styles.planBadgeText}>BEST VALUE</Text></View>
-              <Text style={styles.planTitle}>YEARLY PLAN</Text>
-              <Text style={styles.planPrice}>$49.99/year</Text>
-              <Text style={styles.planSubtext}>Just $0.96/week</Text>
-            </TouchableOpacity>
-            {/* Monthly Plan */}
-            <TouchableOpacity style={[styles.planCard, selectedPlan === 'monthly' && styles.planCardSelected]} onPress={() => setSelectedPlan('monthly')}>
-              <Text style={styles.planTitle}>{freeTrialEnabled ? '3-DAY FREE TRIAL' : 'MONTHLY PLAN'}</Text>
-              <Text style={styles.planPrice}>{freeTrialEnabled ? 'then $4.99/month' : '$4.99/month'}</Text>
-            </TouchableOpacity>
-          </View>
-          {/* Continue Button */}
-          <TouchableOpacity style={styles.cta} onPress={handleContinue}>
-            <Text style={styles.ctaText}>{freeTrialEnabled ? 'Start free trial' : 'Continue'}</Text>
-            <Ionicons name="arrow-forward" size={20} color="#1F2937" />
-          </TouchableOpacity>
-          {/* Continue to Free Version Text Link */}
-          <TouchableOpacity onPress={handleFreeVersion} style={{ alignSelf: 'center', marginTop: -8 }}>
-            <Text style={{ color: '#FFD59E', fontSize: 16, fontWeight: '700' }}>
-              Continue to Free Version
-            </Text>
-          </TouchableOpacity>
-
-          {/* In-App Purchase Options */}
-          {showIAPSheet && products.length > 0 && (
-            <View style={{ backgroundColor: 'white', borderRadius: 16, padding: 24, margin: 20, alignItems: 'center', minWidth: 300, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000 }}>
-              <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 12 }}>Choose a plan:</Text>
-              {products.map((product: any) => (
-                <View key={product.productId} style={{ marginVertical: 8 }}>
-                  <Text style={{ fontWeight: 'bold', fontSize: 16 }}>{product.title}</Text>
-                  <Text>{product.priceString}</Text>
-                  <Text>{product.description}</Text>
-                  <Text style={{ color: '#007AFF', marginTop: 4 }} onPress={() => handlePurchase(product.productId)}>
-                    Subscribe
-                  </Text>
-                </View>
-              ))}
-            </View>
-          )}
-        </View>
-        </SafeAreaView>
-      </ImageBackground>
+      <View style={{flex: 1, backgroundColor: '#222', justifyContent: 'center', alignItems: 'center'}}>
+        <Text style={{color: 'lime', fontSize: 20, margin: 20}}>Minimal Test: Screen Mounted</Text>
+      </View>
     </TextErrorBoundary>
   );
 }
@@ -263,4 +180,3 @@ const styles = StyleSheet.create({
 });
 
 export default SubscriptionScreen;
-

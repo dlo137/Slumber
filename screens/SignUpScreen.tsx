@@ -1,6 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
 
-export default function WelcomeScreen() {
-  return <View />;
+export default function SignUpScreen() {
+	return <View />;
 }

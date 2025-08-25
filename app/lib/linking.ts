@@ -15,3 +15,5 @@ export const linking = {
     },
   },
 };
+
+export default function LinkingPlaceholder() { return null; }

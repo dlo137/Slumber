@@ -202,7 +202,6 @@ const styles = StyleSheet.create({
   bg: { flex: 1 },
   bgImage: {},
   keyboardView: { flex: 1 },
-  // ...existing code...
   formContainer: {
     marginBottom: 24,
   },

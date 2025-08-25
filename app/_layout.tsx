@@ -1,9 +1,15 @@
 
+// Global JS error handler for diagnostics
+// @ts-ignore
+global.ErrorUtils?.setGlobalHandler?.((e, isFatal) => {
+  console.log('FATAL JS ERROR:', e?.message, e?.stack);
+});
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { StripeProvider } from '@stripe/stripe-react-native';
 import Constants from 'expo-constants';
-import { useFonts } from 'expo-font';
+// import { useFonts } from 'expo-font';
 import { Slot, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
@@ -18,9 +24,7 @@ export default function RootLayout() {
   }
   const router = useRouter();
   const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
+  // Font loading removed to prevent crash
 
   // Restore Supabase session on every app launch
   React.useEffect(() => {
@@ -42,9 +46,7 @@ export default function RootLayout() {
     restoreSession();
   }, []);
 
-  if (!loaded) {
-    return null;
-  }
+  // Font loading removed to prevent crash
   return (
     <AudioPlayerProvider>
       <StripeProvider

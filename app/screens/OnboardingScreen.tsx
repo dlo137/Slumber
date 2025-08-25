@@ -6,17 +6,17 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Animated, ImageBackground,
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    Animated, ImageBackground,
+    KeyboardAvoidingView,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 
@@ -435,7 +435,6 @@ const TrialTeaserStep = () => {
 }
 
 const styles = StyleSheet.create({
-// ...existing code...
   suggScroll: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 24, gap: 1.8 },
   suggHeader: { alignItems: 'center', gap: 8, marginTop: 8 },
   emojiBadge: { fontSize: 28, marginBottom: 4 },
